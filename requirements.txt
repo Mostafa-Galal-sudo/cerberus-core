@@ -1,0 +1,20 @@
+# Checkpoint 1
+paho-mqtt>=2.0
+pandas>=2.0
+matplotlib>=3.8
+jupyter>=1.0
+pytest>=8.0
+
+# Checkpoint 2 - detection engine
+scikit-learn>=1.4
+numpy>=1.26
+
+# Checkpoint 3 - LLM agents (uncomment when keys exist)
+# groq>=0.9
+# openai>=1.30          # DeepSeek is OpenAI-API-compatible
+
+# Checkpoint 3+ - dashboard (tech choice pending)
+# flask>=3.0
+
+# Checkpoint 4 - capture / attack tooling (some via system packages)
+# scapy>=2.5

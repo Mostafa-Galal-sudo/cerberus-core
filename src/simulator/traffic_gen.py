@@ -89,10 +89,11 @@ def status_payload(profile, state, now, state_name):
 def finish(profile, body, now):
     raw = json.dumps(body, separators=(",", ":")).encode()
     target = random.randint(*profile.payload_size_range)
-    if len(raw) < target:
-        body["pad"] = secrets.token_hex((target - len(raw)) // 2 + 1)
+    needed = target - len(raw)
+    if needed >= 9:
+        body["pad"] = secrets.token_hex((needed - 9) // 2) + ("a" if (needed - 9) % 2 else "")
         raw = json.dumps(body, separators=(",", ":")).encode()
-    return raw if len(raw) <= target else raw[:target]
+    return raw
 
 
 def log_publish(conn, profile, topic, raw, qos, retain=False):

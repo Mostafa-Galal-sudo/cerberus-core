@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
+
+_WRITE_LOCK = threading.Lock()
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -32,7 +35,7 @@ def utc_now():
 def open_db(path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     conn.commit()
@@ -40,22 +43,23 @@ def open_db(path):
 
 
 def save_event(conn, ev):
-    conn.execute(
-        "INSERT INTO mqtt_events "
-        "(ts_utc, device_id, device_type, topic, qos, payload_size, payload_preview, direction) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            ev["ts_utc"],
-            ev["device_id"],
-            ev["device_type"],
-            ev["topic"],
-            ev["qos"],
-            ev["payload_size"],
-            ev["payload_preview"],
-            ev["direction"],
-        ),
-    )
-    conn.commit()
+    with _WRITE_LOCK:
+        conn.execute(
+            "INSERT INTO mqtt_events "
+            "(ts_utc, device_id, device_type, topic, qos, payload_size, payload_preview, direction) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                ev["ts_utc"],
+                ev["device_id"],
+                ev["device_type"],
+                ev["topic"],
+                ev["qos"],
+                ev["payload_size"],
+                ev["payload_preview"],
+                ev["direction"],
+            ),
+        )
+        conn.commit()
 
 
 def total_events(conn):

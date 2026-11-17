@@ -233,7 +233,7 @@ def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
                     clear_after = random.uniform(1.5, 4.0) if p.device_type == "motion" else random.uniform(3.0, 30.0)
                     publish_event(client, conn, p, state, seq, now, first, clear_after)
                 else:
-                    publish_periodic(client, conn, p, seq, now)
+                    publish_periodic(client, conn, p, state, seq, now)
                 next_publish[p.device_id] = now + random.uniform(*p.publish_interval_range)
             time.sleep(LOOP_DT)
     finally:

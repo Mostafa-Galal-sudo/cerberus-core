@@ -1,18 +1,3 @@
-"""CERBERUS traffic generator (Checkpoint 1, task C1-T05).
-
-Publishes realistic MQTT traffic for every DeviceProfile and stores each event
-in SQLite via src.storage.db. A lightweight subscriber logs inbound command
-traffic (direction='subscribe') so the demo shows two-way broker activity.
-
-Run from the repository root:
-
-    python -m src.simulator.traffic_gen --duration 600
-
-Requires a local Mosquitto broker (task C1-T03).
-"""
-
-from __future__ import annotations
-
 import argparse
 import json
 import random
@@ -21,94 +6,71 @@ import time
 
 import paho.mqtt.client as mqtt
 
-from src.simulator.devices import DEVICE_PROFILES, DeviceProfile
+from src.simulator.devices import PROFILES
 from src.storage import db
 
-DEFAULT_DB = "data/lab/lab_traffic.db"
-DEFAULT_HOST = "localhost"
-DEFAULT_PORT = 1883
-CMD_TOPIC_FILTER = "lab/+/cmd"
+DB_PATH = "data/lab/lab_traffic.db"
+HOST = "localhost"
+PORT = 1883
+CMD_FILTER = "lab/+/cmd"
 
 
-def build_payload(profile: DeviceProfile, seq: int) -> bytes:
-    """Build a realistic payload sized inside the profile's range.
-
-    The pad field absorbs the size difference so payload_size stats per device
-    stay inside the profile's declared range — that is what the fingerprinting
-    baseline (Checkpoint 2) will key on.
-    """
-    base = {
+def make_payload(profile, seq):
+    body = {
         "device_id": profile.device_id,
         "device_type": profile.device_type,
         "seq": seq,
-        "ts": db.utc_now_iso(),
+        "ts": db.utc_now(),
         "value": round(random.uniform(18.0, 35.0), 2),
         "rssi": random.randint(-70, -40),
     }
-    raw = json.dumps(base, separators=(",", ":")).encode()
+    raw = json.dumps(body, separators=(",", ":")).encode()
     target = random.randint(*profile.payload_size_range)
     if len(raw) < target:
-        pad = secrets.token_hex((target - len(raw)) // 2 + 1)
-        base["pad"] = pad
-        raw = json.dumps(base, separators=(",", ":")).encode()
-    return raw[:target] if len(raw) > target else raw
+        body["pad"] = secrets.token_hex((target - len(raw)) // 2 + 1)
+        raw = json.dumps(body, separators=(",", ":")).encode()
+    return raw if len(raw) <= target else raw[:target]
 
 
-def store_publish(
-    conn, profile: DeviceProfile, topic: str, raw: bytes, qos: int
-) -> None:
-    db.insert_event(
-        conn,
-        {
-            "ts_utc": db.utc_now_iso(),
-            "device_id": profile.device_id,
-            "device_type": profile.device_type,
-            "topic": topic,
-            "qos": qos,
-            "payload_size": len(raw),
-            "payload_preview": raw[:120].decode(errors="replace"),
-            "direction": "publish",
-        },
-    )
+def log_publish(conn, profile, topic, raw, qos):
+    db.save_event(conn, {
+        "ts_utc": db.utc_now(),
+        "device_id": profile.device_id,
+        "device_type": profile.device_type,
+        "topic": topic,
+        "qos": qos,
+        "payload_size": len(raw),
+        "payload_preview": raw[:120].decode(errors="replace"),
+        "direction": "publish",
+    })
 
 
-def store_subscribe(conn, topic: str, raw: bytes) -> None:
-    db.insert_event(
-        conn,
-        {
-            "ts_utc": db.utc_now_iso(),
-            "device_id": "operator",
-            "device_type": "operator",
-            "topic": topic,
-            "qos": 0,
-            "payload_size": len(raw),
-            "payload_preview": raw[:120].decode(errors="replace"),
-            "direction": "subscribe",
-        },
-    )
+def log_command(conn, topic, raw):
+    db.save_event(conn, {
+        "ts_utc": db.utc_now(),
+        "device_id": "operator",
+        "device_type": "operator",
+        "topic": topic,
+        "qos": 0,
+        "payload_size": len(raw),
+        "payload_preview": raw[:120].decode(errors="replace"),
+        "direction": "subscribe",
+    })
 
 
-def _on_connect(client, userdata, flags, reason_code, properties) -> None:
+def on_connect(client, userdata, flags, reason_code, properties):
     if getattr(reason_code, "is_failure", False):
         raise ConnectionError(f"MQTT connect failed: {reason_code}")
     print(f"[mqtt] connected ({reason_code})")
-    client.subscribe(CMD_TOPIC_FILTER, qos=0)
+    client.subscribe(CMD_FILTER, qos=0)
 
 
-def _on_command(client, userdata, msg) -> None:
-    conn = userdata["conn"]
-    store_subscribe(conn, msg.topic, msg.payload)
+def on_cmd(client, userdata, msg):
+    log_command(userdata["conn"], msg.topic, msg.payload)
 
 
-def run(
-    profiles: tuple[DeviceProfile, ...],
-    duration_sec: float,
-    db_path: str = DEFAULT_DB,
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
-) -> dict:
-    """Generate traffic for `duration_sec`, then return the DB summary."""
-    conn = db.connect(db_path)
+def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
+    conn = db.open_db(db_path)
     seqs = {p.device_id: 0 for p in profiles}
     next_publish = {
         p.device_id: time.monotonic() + random.uniform(*p.publish_interval_range)
@@ -120,24 +82,24 @@ def run(
         client_id="cerberus_sim",
         userdata={"conn": conn},
     )
-    client.on_connect = _on_connect
-    client.on_message = _on_command
+    client.on_connect = on_connect
+    client.on_message = on_cmd
     client.connect(host, port, keepalive=30)
     client.loop_start()
 
-    print(f"[gen] {len(profiles)} devices, {duration_sec:.0f}s -> {db_path}")
+    print(f"[gen] {len(profiles)} devices, {seconds:.0f}s -> {db_path}")
     start = time.monotonic()
     try:
-        while time.monotonic() - start < duration_sec:
+        while time.monotonic() - start < seconds:
             now = time.monotonic()
             for p in profiles:
                 if now < next_publish[p.device_id]:
                     continue
                 seqs[p.device_id] += 1
                 topic = random.choice(p.topics_publish)
-                raw = build_payload(p, seqs[p.device_id])
+                raw = make_payload(p, seqs[p.device_id])
                 client.publish(topic, raw, qos=0)
-                store_publish(conn, p, topic, raw, qos=0)
+                log_publish(conn, p, topic, raw, qos=0)
                 next_publish[p.device_id] = now + random.uniform(
                     *p.publish_interval_range
                 )
@@ -145,22 +107,22 @@ def run(
     finally:
         client.loop_stop()
         client.disconnect()
-        stats = db.summary(conn)
+        stats = db.summarize(conn)
         conn.close()
 
     print(f"[gen] done: {stats['total_events']} events")
     return stats
 
 
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser(description="CERBERUS MQTT traffic generator")
-    parser.add_argument("--duration", type=float, default=600.0, help="seconds to run")
-    parser.add_argument("--db", default=DEFAULT_DB, help="SQLite database path")
-    parser.add_argument("--host", default=DEFAULT_HOST)
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--duration", type=float, default=600.0)
+    parser.add_argument("--db", default=DB_PATH)
+    parser.add_argument("--host", default=HOST)
+    parser.add_argument("--port", type=int, default=PORT)
     args = parser.parse_args()
 
-    stats = run(DEVICE_PROFILES, args.duration, db_path=args.db, host=args.host, port=args.port)
+    stats = generate(PROFILES, args.duration, db_path=args.db, host=args.host, port=args.port)
     print(json.dumps(stats, indent=2))
 
 

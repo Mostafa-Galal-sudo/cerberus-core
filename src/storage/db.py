@@ -1,15 +1,3 @@
-"""SQLite persistence layer for CERBERUS (Checkpoint 1, task C1-T06).
-
-Stores every MQTT event produced by the simulator with UTC timestamps.
-Later layers consume this database:
-  - detection feature extractor  (Checkpoint 2)
-  - defense agent evidence tools (Checkpoint 3)
-  - dashboard                    (Checkpoint 3+)
-
-All timestamps are ISO8601 UTC strings so that lab data (Checkpoint 4) and
-CICIoT2023-derived tables stay comparable.
-"""
-
 from __future__ import annotations
 
 import sqlite3
@@ -21,14 +9,14 @@ PRAGMA journal_mode = WAL;
 
 CREATE TABLE IF NOT EXISTS mqtt_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts_utc          TEXT    NOT NULL,            -- ISO8601 UTC
+    ts_utc          TEXT    NOT NULL,
     device_id       TEXT    NOT NULL,
     device_type     TEXT    NOT NULL,
     topic           TEXT    NOT NULL,
     qos             INTEGER NOT NULL,
-    payload_size    INTEGER NOT NULL,            -- bytes
-    payload_preview TEXT,                        -- first 120 bytes, for evidence
-    direction       TEXT    NOT NULL             -- 'publish' | 'subscribe'
+    payload_size    INTEGER NOT NULL,
+    payload_preview TEXT,
+    direction       TEXT    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_ts    ON mqtt_events (ts_utc);
@@ -37,14 +25,12 @@ CREATE INDEX IF NOT EXISTS idx_events_dev   ON mqtt_events (device_id);
 """
 
 
-def utc_now_iso() -> str:
-    """Current time as an ISO8601 UTC string (the project-wide timestamp format)."""
+def utc_now():
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
-def connect(db_path: str | Path) -> sqlite3.Connection:
-    """Open (and create) the database, applying the schema."""
-    path = Path(db_path)
+def open_db(path):
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
@@ -53,8 +39,7 @@ def connect(db_path: str | Path) -> sqlite3.Connection:
     return conn
 
 
-def insert_event(conn: sqlite3.Connection, ev: dict) -> None:
-    """Insert one MQTT event record."""
+def save_event(conn, ev):
     conn.execute(
         "INSERT INTO mqtt_events "
         "(ts_utc, device_id, device_type, topic, qos, payload_size, payload_preview, direction) "
@@ -73,14 +58,13 @@ def insert_event(conn: sqlite3.Connection, ev: dict) -> None:
     conn.commit()
 
 
-def event_count(conn: sqlite3.Connection) -> int:
+def total_events(conn):
     return conn.execute("SELECT COUNT(*) FROM mqtt_events").fetchone()[0]
 
 
-def summary(conn: sqlite3.Connection) -> dict:
-    """Aggregated stats for the demo / evidence pack (task C1-T10)."""
+def summarize(conn):
     return {
-        "total_events": event_count(conn),
+        "total_events": total_events(conn),
         "per_device": [
             dict(r)
             for r in conn.execute(

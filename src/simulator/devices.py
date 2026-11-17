@@ -1,16 +1,3 @@
-"""Device profiles for the CERBERUS simulated IoT testbed (Checkpoint 1, task C1-T04).
-
-Each profile defines the *normal* behavior of one device class. The differences
-between profiles (publish cadence, payload size) are the behavioral-fingerprint
-signal that the Checkpoint-2 detection engine learns — keep the profiles
-distinct, never homogenize them.
-
-Firmware for the real testbed (Checkpoint 4) must mirror these profiles so the
-detection engine behaves identically on simulated and real traffic.
-"""
-
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 
@@ -18,19 +5,14 @@ from dataclasses import dataclass
 class DeviceProfile:
     device_id: str
     device_type: str
-    topics_publish: tuple[str, ...]
-    topic_subscribe: tuple[str, ...]
-    publish_interval_range: tuple[float, float]  # seconds, uniform jitter per publish
-    payload_size_range: tuple[int, int]          # target serialized size, bytes
+    topics_publish: tuple
+    topic_subscribe: tuple
+    publish_interval_range: tuple
+    payload_size_range: tuple
     mac: str
 
-    @property
-    def mean_publish_interval(self) -> float:
-        return sum(self.publish_interval_range) / 2
 
-
-DEVICE_PROFILES: tuple[DeviceProfile, ...] = (
-    # Periodic sensor: tight, metronome-like cadence.
+PROFILES = (
     DeviceProfile(
         device_id="esp32_temp_01",
         device_type="temp_sensor",
@@ -40,7 +22,6 @@ DEVICE_PROFILES: tuple[DeviceProfile, ...] = (
         payload_size_range=(40, 60),
         mac="AA:BB:CC:11:22:33",
     ),
-    # Event-driven sensor: mostly silent, bursts when something happens.
     DeviceProfile(
         device_id="esp32_motion_01",
         device_type="motion_sensor",
@@ -50,7 +31,6 @@ DEVICE_PROFILES: tuple[DeviceProfile, ...] = (
         payload_size_range=(20, 40),
         mac="AA:BB:CC:44:55:66",
     ),
-    # Power telemetry: regular but with larger payloads.
     DeviceProfile(
         device_id="esp32_plug_01",
         device_type="smart_plug",
@@ -60,7 +40,6 @@ DEVICE_PROFILES: tuple[DeviceProfile, ...] = (
         payload_size_range=(60, 90),
         mac="AA:BB:CC:77:88:99",
     ),
-    # Coordinator node: slow heartbeat, biggest payloads, two topics.
     DeviceProfile(
         device_id="esp32_ctrl_01",
         device_type="controller",

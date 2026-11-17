@@ -220,6 +220,9 @@ def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
             for p in profiles:
                 if now < state["offline_until"][p.device_id]:
                     continue
+                if state["offline_until"][p.device_id] and now >= state["offline_until"][p.device_id]:
+                    state["offline_until"][p.device_id] = 0.0
+                    come_online(client, conn, p, state, now)
                 if random.random() < p.offline_rate_per_hour / 3600 * LOOP_DT:
                     go_offline(client, conn, p, state, now)
                     next_publish[p.device_id] = state["offline_until"][p.device_id] + random.uniform(*p.publish_interval_range)

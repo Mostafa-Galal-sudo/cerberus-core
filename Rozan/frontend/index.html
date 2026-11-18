@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CERBERUS SOC</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">&#9450;</span>
+      <h1>CERBERUS <span class="brand-sub">SOC</span></h1>
+    </div>
+    <div class="topbar-status">
+      <span id="conn-pill" class="pill pill-down">disconnected</span>
+      <span id="last-updated" class="muted">never</span>
+      <button id="refresh-btn" class="btn">Refresh</button>
+    </div>
+  </header>
+
+  <section class="stats-row" id="stats-row">
+    <div class="stat"><span class="stat-num" id="stat-alerts">–</span><span class="stat-label">Alerts (24h)</span></div>
+    <div class="stat"><span class="stat-num" id="stat-open">–</span><span class="stat-label">Open</span></div>
+    <div class="stat"><span class="stat-num" id="stat-devices">–</span><span class="stat-label">Devices</span></div>
+    <div class="stat"><span class="stat-num" id="stat-isolated">–</span><span class="stat-label">Isolated</span></div>
+    <div class="stat"><span class="stat-num" id="stat-incidents">–</span><span class="stat-label">Incidents</span></div>
+  </section>
+
+  <main class="grid">
+    <section class="panel panel-alerts">
+      <div class="panel-head">
+        <h2>Live alerts</h2>
+        <label class="muted">status
+          <select id="alert-filter">
+            <option value="">all</option>
+            <option value="open">open</option>
+            <option value="acknowledged">acknowledged</option>
+            <option value="resolved">resolved</option>
+            <option value="false_positive">false positive</option>
+          </select>
+        </label>
+      </div>
+      <table id="alerts-table">
+        <thead>
+          <tr><th>ID</th><th>Time</th><th>Device</th><th>Class</th><th>Confidence</th><th>Status</th></tr>
+        </thead>
+        <tbody id="alerts-body"></tbody>
+      </table>
+      <p class="empty" id="alerts-empty">No alerts. The network is quiet.</p>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-head"><h2>Devices</h2></div>
+      <ul id="devices-list" class="devices"></ul>
+      <p class="empty" id="devices-empty">No devices seen yet.</p>
+    </aside>
+
+    <section class="panel" id="alert-detail" hidden>
+      <div class="panel-head">
+        <h2>Alert <span id="detail-id"></span></h2>
+        <button class="btn btn-ghost" id="close-detail">Close</button>
+      </div>
+      <div id="detail-summary" class="detail-summary"></div>
+      <div class="scorebars" id="detail-scores"></div>
+      <h3>Why this alert fired</h3>
+      <ul id="detail-reasons" class="reasons"></ul>
+      <h3>ML attribution (SHAP)</h3>
+      <ul id="detail-features" class="features"></ul>
+      <div class="detail-actions">
+        <button class="btn" data-status="acknowledged">Acknowledge</button>
+        <button class="btn" data-status="resolved">Resolve</button>
+        <button class="btn btn-ghost" data-status="false_positive">False positive</button>
+        <button class="btn btn-danger" id="isolate-btn">Isolate device</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Investigations</h2></div>
+      <ul id="incidents-list" class="incidents"></ul>
+      <div id="timeline" class="timeline" hidden>
+        <h3 id="timeline-title"></h3>
+        <ol id="timeline-events"></ol>
+      </div>
+      <p class="empty" id="incidents-empty">No open investigations.</p>
+    </section>
+  </main>
+
+  <footer class="foot muted">
+    CERBERUS &mdash; policy-bounded automated response. All actions are audit-logged.
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

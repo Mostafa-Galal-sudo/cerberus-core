@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# ML artifacts
+*.pkl
+*.joblib
+models/
+
+# Data (large datasets are not committed)
+data/
+*.pcap
+
+# SQLite
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/

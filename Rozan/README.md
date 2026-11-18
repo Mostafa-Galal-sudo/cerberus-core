@@ -6,7 +6,7 @@
 **for Wi-Fi / MQTT IoT networks**
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-95%20passing-3FB950)](docs/PLAN.md)
+[![Tests](https://img.shields.io/badge/tests-124%20passing-3FB950)](docs/PLAN.md)
 [![Stack](https://img.shields.io/badge/stack-Flask%20·%20scikit--learn%20·%20SHAP-232F3E)](requirements.txt)
 [![Phase](https://img.shields.io/badge/phase-1%20software%20core-58A6FF)](docs/PLAN.md)
 
@@ -129,7 +129,7 @@ traffic ──► rules (7 explainable signatures)          ─┐
 
 | Phase | Scope | Status |
 |---|---|---|
-| **1 — Software core** | Full pipeline on CICIoT2023 + simulated traffic (detection, explainability, backend, dashboard, alerting, agents) | 🟡 7/10 items — see [`docs/PLAN.md`](docs/PLAN.md) |
+| **1 — Software core** | Full pipeline on CICIoT2023 + simulated traffic (detection, explainability, backend, dashboard, alerting, agents, policy-bounded response) | 🟢 complete — see [`docs/PLAN.md`](docs/PLAN.md) |
 | **2 — Physical testbed** | 4–5 ESP32 nodes + Mosquitto gateway, live attacks, re-validation with confidence intervals | ⚪ planned |
 | **3 — RF resilience** | NRF24L01 interference inside shielded enclosure; accuracy/false-alarm degradation | ⚪ stretch goal |
 

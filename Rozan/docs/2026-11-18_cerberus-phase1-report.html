@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>CERBERUS — تقرير المرحلة الأولى الشامل</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11.5pt; line-height: 1.75; color: #1a1a2e; margin: 0; }
+  h1 { font-size: 22pt; color: #0f3460; border-bottom: 3px solid #e94560; padding-bottom: 8px; margin-top: 28px; }
+  h2 { font-size: 16pt; color: #16213e; border-inline-start: 5px solid #e94560; padding-inline-start: 10px; margin-top: 26px; }
+  h3 { font-size: 13pt; color: #0f3460; margin-top: 18px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+  th { background: #16213e; color: #fff; padding: 7px 9px; text-align: right; }
+  td { border: 1px solid #cfd8e3; padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7fb; }
+  code { background: #eef1f6; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 9.5pt; direction: ltr; unicode-bidi: embed; }
+  pre { background: #16213e; color: #d8e3f0; padding: 10px 14px; border-radius: 6px; font-family: Consolas, monospace; font-size: 9pt; direction: ltr; text-align: left; overflow-x: hidden; white-space: pre-wrap; }
+  pre code { background: none; color: inherit; padding: 0; }
+  .cover { text-align: center; padding-top: 60px; }
+  .cover h1 { border: none; font-size: 30pt; color: #0f3460; }
+  .cover .sub { font-size: 14pt; color: #555; margin-top: 6px; }
+  .badge { display: inline-block; background: #0f3460; color: #fff; padding: 4px 14px; border-radius: 14px; font-size: 10pt; margin: 4px; }
+  .ok { color: #1a7f37; font-weight: bold; }
+  .warn { background: #fff6e5; border-inline-start: 4px solid #f0a500; padding: 8px 12px; margin: 10px 0; font-size: 10.5pt; }
+  .note { background: #eaf2fb; border-inline-start: 4px solid #0f3460; padding: 8px 12px; margin: 10px 0; font-size: 10.5pt; }
+  .layer { display: inline-block; margin: 3px 1px; }
+  ul { padding-inline-start: 22px; }
+  li { margin-bottom: 4px; }
+  .refs li { margin-bottom: 9px; font-size: 10.5pt; }
+  .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #999; font-size: 9pt; color: #666; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>🐾 CERBERUS</h1>
+  <div class="sub">منصة كشف التسلح متعددة الطبقات والاستجابة الآلية المحدودة بالسياسة<br>لشبكات إنترنت الأشياء Wi-Fi / MQTT</div>
+  <div style="margin-top:20px;">
+    <span class="badge">تقرير المرحلة الأولى — كامل</span>
+    <span class="badge">124 اختبار ناجح</span>
+    <span class="badge">10/10 بنود</span>
+    <span class="badge">18 نوفمبر 2026</span>
+  </div>
+</div>
+
+<h1>1. الملخص التنفيذي</h1>
+<p>اكتمل بناء <b>المرحلة الأولى (Software Core)</b> من منصة CERBERUS بالكامل: حلقة مغلقة من خمس طبقات تبدأ بتوليد هجمات محاكاة عبر وكيل LLM، وتنتهي بعزل آلي للأجهزة الخبيثة بعد تأكيد وكيل دفاعي — مع <b>تفسير لكل إنذار</b> عبر SHAP/LIME، وبدون أي اعتماد على راوتر معين أو هاردوير. كل الكود مرفوع على GitHub داخل فولدر <code>Rozan/</code> في مستودع <code>Mostafa-Galal-sudo/cerberus-core</code>.</p>
+
+<table>
+  <tr><th>المؤشر</th><th>القيمة</th></tr>
+  <tr><td>بنود المرحلة الأولى المنفذة</td><td class="ok">10 / 10 — مكتملة بالكامل</td></tr>
+  <tr><td>الاختبارات الآلية</td><td class="ok">124 اختبار — كلها ناجحة</td></tr>
+  <tr><td>جودة الكود (ruff lint)</td><td class="ok">All checks passed</td></tr>
+  <tr><td>ملفات Python في المشروع</td><td>37 ملف</td></tr>
+  <tr><td>Commits على GitHub</td><td><code>db29411</code> · <code>3880a82</code> · <code>c1acdac</code></td></tr>
+  <tr><td>زمن تنفيذ كامل الاختبارات</td><td>~125 ثانية</td></tr>
+</table>
+
+<h1>2. ما تم تنفيذه بالتفصيل</h1>
+
+<h2>2.1 التأسيس والبنية (Scaffolding)</h2>
+<ul>
+  <li>بيئة افتراضية <b>Python 3.12 (64-bit)</b> عبر <code>py -3.12 -m venv .venv</code> — ملاحظة حرجة: بايثون النظام 3.14 (32-bit) لا يملك wheels جاهزة لمكتبات scipy/scikit-learn/shap.</li>
+  <li>هيكل الحزم: <code>agents/</code> · <code>detection/</code> · <code>gateway/</code> · <code>backend/</code> · <code>frontend/</code> · <code>tests/</code> · <code>scripts/</code> · <code>docs/</code> · <code>firmware/</code></li>
+  <li>ملف <code>requirements.txt</code> + قالب أسرار <code>.env.example</code> + ملف <code>AGENTS.md</code> توثيق فيه الأوامر المُتحقق منها والمزالق.</li>
+</ul>
+<div class="warn">⚠️ <b>مزالق مُوثّقة:</b> الخادم يُشغَّل كوحدة <code>python -m backend.app</code> (التشغيل كملف مباشر يكسر <code>import config</code>)؛ اختيار قاعدة البيانات عبر متغير البيئة <code>DB_PATH</code> (الافتراضي <code>cerberus.db</code>، و<code>demo.db</code> للبيانات التجريبية المُسرعة).</div>
+
+<h2>2.2 خط بيانات CICIoT2023 والمولّد المحاكى</h2>
+<ul>
+  <li><code>detection/schema.py</code>: مخطط ميزات كانوني — <b>48 عمود ميزة</b> + <code>label</code> + <code>attack_class</code> + <code>is_attack</code>، مع مطابقة أسماء غير حساسة لحالة الأحرف/الفواصل من أي CSV.</li>
+  <li><code>detection/data.py</code>: محمّل CSV بالتجزئة (chunked) لملفات CICIoT2023 الضخمة.</li>
+  <li><code>detection/simulator.py</code>: مولّد traffic محاكى بنفس المخطط — <b>6 سيناريوهات</b> ببادئة <code>Sim-</code> وخريطة أصناف هجوم خاصة بها:</li>
+</ul>
+<table>
+  <tr><th>السيناريو</th><th>Label</th><th>الصنف</th><th>التوقيع</th></tr>
+  <tr><td><code>mqtt_benign</code></td><td>Sim-MQTT_Benign</td><td>BenignTraffic</td><td>تليمتري MQTT طبيعي (TCP, Rate≈15.7)</td></tr>
+  <tr><td><code>mqtt_flood</code></td><td>Sim-MQTT_Flood</td><td>DoS</td><td>Rate &gt; 100k, SYN/RST-heavy, تدفقات قصيرة</td></tr>
+  <tr><td><code>mqtt_injection</code></td><td>Sim-MQTT_Injection</td><td>Spoofing</td><td>Rate طبيعي لكن إحصائيات حجم شاذة (Header 90–400)</td></tr>
+  <tr><td><code>mqtt_spoof</code></td><td>Sim-MQTT_DeviceSpoof</td><td>Spoofing</td><td>نفس عائلة التزييف</td></tr>
+  <tr><td><code>wifi_deauth</code></td><td>Sim-WiFi_Deauth</td><td>DoS</td><td>توقيع الفيضان على طبقة 802.11</td></tr>
+  <tr><td><code>wifi_rogue_ap</code></td><td>Sim-WiFi_RogueAP</td><td>Spoofing</td><td>توقيع التزييف</td></tr>
+</table>
+
+<h2>2.3 محرك الكشف الهجين (Hybrid IDS)</h2>
+<ul>
+  <li><code>detection/rules.py</code> — <b>7 قواعد حتمية قابلة للتفسير</b>، كل قاعدة تُطلق اسمها + سبب نصيًا بالقيم الفعلية:</li>
+</ul>
+<table>
+  <tr><th>القاعدة</th><th>الشرط</th><th>الوزن</th><th>الخطورة</th></tr>
+  <tr><td><code>flood_rate</code></td><td>Rate &gt; 10,000 و syn_flag &gt; 0.5</td><td>1.0</td><td>high</td></tr>
+  <tr><td><code>volume_spike</code></td><td>Tot_sum &gt; 5,000</td><td>0.9</td><td>high</td></tr>
+  <tr><td><code>syn_no_ack</code></td><td>Rate &gt; 500 و SYN بدون ACK</td><td>0.8</td><td>medium</td></tr>
+  <tr><td><code>reset_storm</code></td><td>rst_count &gt; 5</td><td>0.6</td><td>medium</td></tr>
+  <tr><td><code>oversized_header</code></td><td>Header_Length &gt; 500</td><td>0.6</td><td>medium</td></tr>
+  <tr><td><code>icmp_anomaly</code></td><td>ICMP مع Rate &gt; 1,000</td><td>0.6</td><td>medium</td></tr>
+  <tr><td><code>arp_activity</code></td><td>وجود حركة ARP</td><td>0.3</td><td>low</td></tr>
+</table>
+<ul>
+  <li><code>detection/ml_detector.py</code>: <b>Isolation Forest + Autoencoder (MLP)</b> مدرَّبان على البيانات الطبيعية فقط، مع معايرة الدرجات بكمّيات التوزيع الطبيعي (q05 → 0، q99 → 1).</li>
+  <li><code>detection/fingerprint.py</code>: بصمة سلوكية لكل جهاز (انحراف z عن خط أساسه + وسم الأجهزة الجديدة).</li>
+  <li><code>detection/engine.py</code>: دمج مرجّح مع اتخاذ قرار إنذار:</li>
+</ul>
+<pre><code>fused_score = 0.5·ML + 0.35·Rules + 0.15·Fingerprint
+is_alert = (fused_score &gt;= 0.5)</code></pre>
+
+<h2>2.4 طبقة التفسير (Explainability)</h2>
+<ul>
+  <li><code>detection/explain.py</code>: <b>SHAP TreeExplainer</b> (دقيق على Isolation Forest — المرجع الأساسي) + <b>LIME</b> (نموذج بديل محلي — فحص مرافق فقط).</li>
+  <li><code>annotate_alerts()</code> تدمج إسنادات SHAP مع أسباب القواعد والبصمة في سجل الإنذار الواحد.</li>
+</ul>
+<div class="note">ℹ️ <b>تحفّظ موثّق:</b> دالة قرار IF متدرجة قطعيًا (piecewise-constant)، لذا إسنادات LIME المحلية ضجيجية — SHAP هو المرجع.</div>
+
+<h2>2.5 الخادم الخلفي (Backend)</h2>
+<ul>
+  <li><code>backend/db.py</code>: SQLite بوضع WAL، 5 جداول — <code>alerts</code> (مع لقطة الميزات الخام كاملة لقابلية إعادة الإنتاج)، <code>devices</code>، <code>incidents</code>، <code>incident_events</code>، <code>audit_log</code>. أعمدة JSON تُخزَّن TEXT وتفك عند القراءة.</li>
+  <li><code>backend/app.py</code>: Flask REST API كامل + تقديم لوحة SOC من <code>frontend/</code> على <code>/</code> و<code>/health</code> للفحص.</li>
+  <li><code>backend/ingest.py</code>: جسر المحرك → قاعدة البيانات (الصفوف الموسومة <code>is_alert</code> فقط تصبح سجلات إنذار؛ كل الصفوف تحدّث <code>last_seen</code> للأجهزة).</li>
+</ul>
+<table>
+  <tr><th>Endpoint</th><th>Method</th><th>الوظيفة</th></tr>
+  <tr><td><code>/api/alerts</code></td><td>GET / POST</td><td>قائمة (تصفية بالحالة) / استيعاب دفعي</td></tr>
+  <tr><td><code>/api/alerts/{id}</code></td><td>GET</td><td>سجل الإنذار الكامل مع لقطة الميزات</td></tr>
+  <tr><td><code>/api/alerts/{id}/status</code></td><td>POST</td><td>open → acknowledged / resolved / false_positive</td></tr>
+  <tr><td><code>/api/devices</code></td><td>GET</td><td>سجل الأجهزة (أول/آخر ظهور، الحالة)</td></tr>
+  <tr><td><code>/api/devices/{id}/status</code></td><td>PUT</td><td>trusted / suspicious / isolated</td></tr>
+  <tr><td><code>/api/incidents</code> + <code>/{id}/timeline</code></td><td>GET / POST</td><td>التحقيقات + خط الزمن</td></tr>
+  <tr><td><code>/api/audit</code></td><td>GET</td><td>سجل التدقيق (كل عملية تعديل)</td></tr>
+</table>
+
+<h2>2.6 لوحة SOC (Frontend)</h2>
+<ul>
+  <li><b>HTML/CSS/JS خام بدون أي framework</b> — ثيم SOC داكن، استطلاع كل 5 ثوانٍ.</li>
+  <li>صف إحصائيات حي + جدول إنذارات قابل للتصفية + حالة الأجهزة مع زر عزل + تفاصيل كل إنذار (أشرطة الدرجات: الثقة المدمجة / ML / القواعد / البصمة + إسناد SHAP + أسباب القواعد) + خطوط زمن التحقيقات.</li>
+  <li><code>scripts/seed_demo.py</code>: يسرّع قاعدة بيانات عرض تجريبية كاملة (29 إنذار + incident) ويشغّل الخادم — تم التحقق البصري داخل المتصفح.</li>
+</ul>
+
+<h2>2.7 طبقة التنبيه (Alerting)</h2>
+<ul>
+  <li><code>backend/alerting.py</code>: <code>TelegramNotifier</b></code> (Bot API بحد أدنى 1.1 ثانية/رسالة — الفائض يُسقَط بسلامة) + <code>WebhookNotifier</code> (POST للـ JSON على قائمة <code>WEBHOOK_URLS</code>) + <code>AlertDispatcher</code> (fanout لكل المُعِدين).</li>
+  <li>لا ترتفع أي استثناء إلى خط الكشف — الفشل الشبكي/الغياب = no-op مع تسجيل.</li>
+  <li>اكتشفت الاختبارات عيبًا حقيقيًا وأصلحته: مفتاح النتائج كان اسم الفصل → تكرار نفس الفئة يفقد نتيجة؛ أُعيدت الصياغة لقائمة مرتبة.</li>
+</ul>
+
+<h2>2.8 طبقة الوكلاء (LLM Agents) — أكبر بنود المرحلة</h2>
+<h3>أ. السقالة المشتركة <code>agents/scaffold.py</code></h3>
+<ul>
+  <li><b>ScopePolicy</b>: قفل النطاق — الأهداف المحمية (gateway, broker, mosquitto, soc, dashboard) مطابقة بنص فرعي غير حساس لحالة الأحرف؛ لا يمكن للمستهدف المحمي أن يُلمس أبدًا.</li>
+  <li><b>RateLimiter</b>: فاصل أدنى بين النداءات + ميزانية لكل نافذة زمنية، مع ساعة قابلة للحقن لاختبارات حتمية.</li>
+  <li><b>LLMAgent</b>: حلقة tool-calling على أي عميل بشكل OpenAI SDK (<code>chat.completions.create</code>) — الحاجز يرد الرفض إلى الـ LLM كرسالة أداة خطأ (ScopeViolation/RateLimitExceeded) فيبدّل هدفه بدل الانهيار؛ حد أقصى <code>max_rounds</code> يرفع <code>AgentLoopError</code>.</li>
+</ul>
+<h3>ب. وكيل الهجوم <code>agents/attack.py</code> (DeepSeek)</h3>
+<ul>
+  <li>النموذج: <code>deepseek-chat</code> عبر <code>https://api.deepseek.com</code> (متوافق مع OpenAI SDK، الاستيراد كسول).</li>
+  <li>الأدوات: <code>list_attack_types</code> (كتالوج السيناريوهات) · <code>deploy_attack</code> (يولّد traffic محاكى في مخطط CICIoT2023 → يمسّه المحرك → يستوعب + audit؛ محدود 10 نداءات/دقيقة) · <code>get_network_state</code>.</li>
+  <li>الحماية: الهدف يُفحص على مستوى الحلقة <b>وعلى مستوى المعالج</b> (دفاع متعمق).</li>
+</ul>
+<h3>ج. وكيل الدفاع <code>agents/defense.py</code> (Groq)</h3>
+<ul>
+  <li>النموذج: <code>llama-3.3-70b-versatile</code> عبر <code>https://api.groq.com/openai/v1</code>.</li>
+  <li>6 أدوات: <code>get_alert_details</code> · <code>list_open_alerts</code> · <code>correlate_alerts</code> (تجميع device×class لكشف الحملات) · <code>create_incident</code> · <code>append_timeline_event</code> · <code>request_isolation</code>.</li>
+  <li><b>الوكيل لا يلمس حالة الأجهزة مباشرة</b> — كل عزل يمرّ إجباريًا عبر طبقة الاستجابة.</li>
+</ul>
+<h3>د. الاستجابة المحدودة بالسياسة <code>agents/response.py</code></h3>
+<table>
+  <tr><th>القيد</th><th>القيمة</th></tr>
+  <tr><td>حد أدنى للثقة المؤكدة</td><td>0.5 (fused/confidence)</td></tr>
+  <tr><td>الأجهزة المحمية</td><td>gateway · broker · mosquitto · soc · dashboard — مستحيلة العزل</td></tr>
+  <tr><td>الأجهزة غير المسجلة</td><td>مرفوضة (منكرة وليست crash)</td></tr>
+  <tr><td>حد المعدل</td><td>5 عمليات عزل / ساعة (نافذة متحركة)</td></tr>
+  <tr><td>المساءلة</td><td>audit log + حدث في خط زمن الحادثة لكل عملية</td></tr>
+</table>
+<ul>
+  <li><code>release_device()</code>: فك العزل <b>يدوي فقط من المشغّل</b> — لا يتم آليًا أبدًا.</li>
+</ul>
+
+<h1>3. الاختبارات والتحقق</h1>
+<ul>
+  <li><b>124 اختبار</b> ناجحة تغطي: المخطط والبيانات، كل قاعدة، IF/AE/البصمة، الدمج، SHAP/LIME، الـ API (بما فيه end-to-end محرك→SHAP→DB→API)، الـ alerting (شبكة mocked)، السقالة (حلقة أدوات كاملة بعملاء مزيفين)، الوكلاء، سياسة الاستجابة.</li>
+  <li>اختبار end-to-end بالوكيل الافتراضي يثبت المسار كاملًا: LLM مزيف → أدوات دفاع → عزل فعلي في DB + audit + timeline.</li>
+  <li>كل العملاء injectable — <b>لا نداء API حقيقي واحد</b> في أي اختبار.</li>
+  <li>الأمران المُتحقق منهما: <code>.venv\Scripts\ruff.exe check .</code> و <code>.venv\Scripts\python.exe -m pytest tests -q</code>.</li>
+</ul>
+
+<h1>4. البيانات والمصادر المستخدمة</h1>
+<h2>4.1 مجموعات البيانات</h2>
+<table>
+  <tr><th>المصدر</th><th>الاستخدام</th><th>الحالة</th></tr>
+  <tr><td><b>CICIoT2023</b> — Canadian Institute for Cybersecurity (UNB)</td><td>مخطط الـ 48 ميزة المرجعي + تصنيف الهجمات + معايرة عتبات القواعد</td><td>المخطط مطبّق بالكامل؛ ملفات CSV الأصلية لم تُنزّل بعد — تُوضع في <code>data/</code> (مستثناة من git)</td></tr>
+  <tr><td><b>المولّد المحاكى</b> (<code>detection/simulator.py</code>)</td><td>تدريب خط الأساس + إطلاق كل السيناريوهات (محلي فقط)</td><td class="ok">مُستخدم فعليًا في كل الجولات</td></tr>
+  <tr><td>نسخة معالجة مسبقة: HuggingFace <code>lacg030175/CIC-IoT-2023</code></td><td>بديل أخف (~1.3M صف)</td><td>مرشّح للتحميل لاحقًا</td></tr>
+</table>
+
+<h2>4.2 خدمات وواجهات خارجية</h2>
+<table>
+  <tr><th>الخدمة</th><th>التفاصيل</th><th>المتغيرات</th></tr>
+  <tr><td>DeepSeek API</td><td><code>deepseek-chat</code> — وكيل الهجوم (متوافق OpenAI)</td><td><code>DEEPSEEK_API_KEY</code> · <code>DEEPSEEK_MODEL</code></td></tr>
+  <tr><td>Groq API</td><td><code>llama-3.3-70b-versatile</code> — وكيل الدفاع</td><td><code>GROQ_API_KEY</code> · <code>GROQ_MODEL</code></td></tr>
+  <tr><td>Telegram Bot API</td><td>دفع الإنذارات للـ SOC الشخصي</td><td><code>TELEGRAM_BOT_TOKEN</code> · <code>TELEGRAM_CHAT_ID</code></td></tr>
+  <tr><td>Webhooks</td><td>قائمة URLs مفصولة بفواصل</td><td><code>WEBHOOK_URLS</code></td></tr>
+  <tr><td>Mosquitto MQTT</td><td>البروكر التجريبي (المرحلة 2)</td><td><code>MQTT_BROKER_HOST</code> · <code>MQTT_BROKER_PORT</code></td></tr>
+</table>
+<div class="note">🔑 الأسرار تُقرأ من <code>.env</code> فقط عبر <code>python-dotenv</code> — لا hardcoding. مفتاح GitHub PAT المستخدم للرفع استُخدم عبر أوامر push مؤقتة ولا يتواجد في أي ملف داخل المشروع.</div>
+
+<h2>4.3 المكتبات (requirements.txt)</h2>
+<table>
+  <tr><th>المكتبة</th><th>الإصدار</th><th>الغرض</th></tr>
+  <tr><td>flask</td><td>≥3.1</td><td>REST API + تقديم اللوحة</td></tr>
+  <tr><td>scikit-learn</td><td>≥1.5</td><td>Isolation Forest + Autoencoder + أدوات القياس</td></tr>
+  <tr><td>numpy / pandas</td><td>≥1.26 / ≥2.2</td><td>المصفوفات وDataFrames</td></tr>
+  <tr><td>shap</td><td>≥0.45</td><td>TreeExplainer للإسناد (المرجع)</td></tr>
+  <tr><td>lime</td><td>≥0.2.0</td><td>النموذج البديل المحلي (مرافق)</td></tr>
+  <tr><td>paho-mqtt</td><td>≥2.1</td><td>عميل MQTT (المرحلة 2)</td></tr>
+  <tr><td>openai / groq</td><td>≥1.50 / ≥0.11</td><td>SDKs للوكلاء</td></tr>
+  <tr><td>requests</td><td>≥2.32</td><td>Telegram + Webhooks</td></tr>
+  <tr><td>pytest / ruff</td><td>≥8.0 / ≥0.6</td><td>الاختبار والlint</td></tr>
+</table>
+
+<h1>5. المعمارية (الحلقة المغلقة الخمسية)</h1>
+<table style="text-align:center;">
+  <tr>
+    <th>🎯 الهجوم</th><th>→</th><th>🛡️ الكشف</th><th>→</th><th>🔍 الدفاع</th><th>→</th><th>⛔ الاستجابة</th>
+  </tr>
+  <tr>
+    <td>وكيل DeepSeek<br>6 سيناريوهات محاكاة<br>RF + MQTT</td>
+    <td></td>
+    <td>0.5·ML + 0.35·Rules<br>+ 0.15·Fingerprint<br>+ SHAP/LIME</td>
+    <td></td>
+    <td>وكيل Groq<br>correlation + timeline<br>حكم مؤكد</td>
+    <td></td>
+    <td>عزل محدود بالسياسة<br>audit + timeline</td>
+  </tr>
+</table>
+<p style="text-align:center;">+ <b>العرض (Presentation)</b>: لوحة SOC خام JS + Telegram/Webhooks — تتغذى من طبقتَي الكشف والدفاع.</p>
+
+<h1>6. المستودع والتحكم بالإصدارات</h1>
+<table>
+  <tr><th>Commit</th><th>المحتوى</th></tr>
+  <tr><td><code>db29411</code></td><td>CERBERUS Phase 1: pipeline الكشف الهجين + backend + لوحة SOC + alerting (كل شيء داخل <code>Rozan/</code>)</td></tr>
+  <tr><td><code>3880a82</code></td><td>README مصمم من جديد: badges + مخطط mermaid معماري + Quickstart + جداول API وroadmap</td></tr>
+  <tr><td><code>c1acdac</code></td><td>طبقة الوكلاء: attack agent + defense agent + policy-bounded response (1261 سطرًا)</td></tr>
+</table>
+<p>المستودع: <code>https://github.com/Mostafa-Galal-sudo/cerberus-core</code> — branch <code>main</code> — <b>كل الكود حصرًا داخل فولدر <code>Rozan/</code></b> (تم التحقق بـ <code>git status</code> قبل كل commit).</p>
+
+<h1>7. المراجع التفصيلية</h1>
+<ol class="refs">
+  <li><b>CICIoT2023 Dataset:</b> Neto, E. C. M. et al. — <i>"CICIoT2023: A Real-Time Dataset and Benchmark for Large-Scale Attacks in IoT Environment"</i>, <b>Sensors</b> 2023, 23(13), 5941 — MDPI. صفحة المجموعة: <code>https://www.unb.ca/cic/datasets/iotdataset-2023.html</code> (رخصة CC BY 4.0). استخدمنا منه مخطط الـ 48 ميزة (Rate, Header_Length, syn_flag_number, Tot_sum, ...) وتصنيف الصنفين DoS/Spoofing.</li>
+  <li><b>Isolation Forest:</b> Liu, F. T., Ting, K. M., Zhou, Z.-H. (2008). <i>"Isolation Forest"</i>. IEEE ICDM 2008 — الأساس النظري لكاشف الشذوذ الرئيسي في المحرك.</li>
+  <li><b>SHAP:</b> Lundberg, S. M., Lee, S.-I. (2017). <i>"A Unified Approach to Interpreting Model Predictions"</i>. NeurIPS 2017 — الإطار المرجعي للتفسير؛ تنفيذنا TreeExplainer (شجري دقيق) عبر مكتبة <code>shap</code> ≥0.45.</li>
+  <li><b>LIME:</b> Ribeiro, M. T., Singh, S., Guestrin, C. (2016). <i>"'Why Should I Trust You?': Explaining the Predictions of Any Classifier"</i>. KDD 2016 — الفحص المرافق عبر مكتبة <code>lime</code> ≥0.2.</li>
+  <li><b>scikit-learn:</b> Pedregosa et al. (2011). <i>"Scikit-learn: Machine Learning in Python"</i>. JMLR 12 — IsolationForest, MLPRegressor, preprocessing.</li>
+  <li><b>MQTT v5:</b> OASIS Standard (2019) <code>https://docs.oasis-open.org/mqtt/mqtt/v5.0/</code> + <b>Mosquitto</b> broker <code>https://mosquitto.org/</code> — بروتوكول تليمتري الأجهزة المستهدف في كاشفنا والبروكر المحمي.</li>
+  <li><b>DeepSeek API:</b> <code>https://api-docs.deepseek.com/</code> — endpoint متوافق OpenAI؛ النموذج <code>deepseek-chat</code> لوكيل الهجوم.</li>
+  <li><b>Groq API:</b> <code>https://console.groq.com/docs</code> — endpoint متوافق OpenAI؛ النموذج <code>llama-3.3-70b-versatile</code> (Meta Llama 3.3) لوكيل الدفاع.</li>
+  <li><b>OpenAI Python SDK:</b> <code>https://github.com/openai/openai-python</code> — شكل العميل المرجعي للحلقة (chat.completions + function calling) وبُني عليه السقالة القابلة للحقن.</li>
+  <li><b>Telegram Bot API:</b> <code>https://core.telegram.org/bots/api</code> — sendMessage مع rate limit الرسمي ~1 رسالة/ثانية لكل محادثة (طبقنا 1.1s).</li>
+  <li><b>Flask:</b> Pallets Projects <code>https://flask.palletsprojects.com/</code> — REST API وتقديم اللوحة.</li>
+  <li><b>ESP-IDF / frame injection:</b> Espressif <code>esp_wifi_80211_tx()</code> <code>https://docs.espressif.com/projects/esp-idf/</code> — أداة حقن إطارات 802.11 المخططة للمرحلة 2 (Deauth/Rogue AP عبر ESP32، غير Arduino).</li>
+  <li><b>NRF24L01:</b> مواصفات Nordic Semiconductor nRF24L01+ — راديو 2.4GHz لاختبارات التشويش في المرحلة 3 داخل حجرة محصّلة.</li>
+  <li><b>الامتثال RF (مصر):</b> لوائح هيئة تنمية صناعة تكنولوجيا المعلومات (NTRA) للاختبارات الترددية — كل توليد هجوم RF مقيد بحجرة مشحّدة فيزيائيًا، ولا هجوم خارج الشبكة المخبرية.</li>
+  <li><b>ruff / pytest:</b> أدوات الجودة — ruff ≥0.6 (lint) وpytest ≥8.0 (124 اختبارًا).</li>
+</ol>
+
+<h1>8. خارطة الطريق المتبقية</h1>
+<table>
+  <tr><th>المرحلة</th><th>النطاق</th><th>الحالة</th></tr>
+  <tr><td><b>1 — نواة برمجية</b></td><td>كل خط الأنابيب على CICIoT2023 + المحاكاة</td><td class="ok">🟢 مكتملة 10/10</td></tr>
+  <tr><td><b>2 — Testbed فيزيائي</b></td><td>4–5 لوحات ESP32 (ESP-IDF) + Mosquitto على gateway حقيقي + هجمات محكومة + إعادة تحقق بفواصل ثقة</td><td>⚪ مخططة (تنتظر الهاردوير)</td></tr>
+  <tr><td><b>3 — مرونة RF</b></td><td>NRF24L01 داخل حجرة مشحّدة؛ قياس تدهور الدقة/الإنذارات الكاذبة تحت تداخل 2.4GHz</td><td>⚪ هدف إضافي</td></tr>
+</table>
+<div class="note">📌 <b>قاعدة المشروع:</b> الهاردوير لا يؤخر البرمجيات — المرحلة 2–3 تُبنى فوق نواة مكتملة ومُختبرة. أولوية الاعتماد على البيانات الحقيقية: وضع CSVs في <code>data/</code> ثم إعادة معايرة العتبات.</div>
+
+<div class="footer">CERBERUS — تقرير اكتمال المرحلة الأولى · 18 نوفمبر 2026 · مستودع: Mostafa-Galal-sudo/cerberus-core (Rozan/)</div>
+
+</body>
+</html>

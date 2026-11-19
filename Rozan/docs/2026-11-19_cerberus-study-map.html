@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>خريطة مذاكرة — Agentic AI &amp; LLMs for Autonomous IoT Cybersecurity</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a2e; margin: 0; }
+  h1 { font-size: 20pt; color: #0f3460; border-bottom: 3px solid #e94560; padding-bottom: 8px; margin-top: 30px; }
+  h2 { font-size: 15pt; color: #16213e; border-inline-start: 5px solid #e94560; padding-inline-start: 10px; margin-top: 24px; }
+  h3 { font-size: 12.5pt; color: #0f3460; margin-top: 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 9.8pt; }
+  th { background: #16213e; color: #fff; padding: 7px 9px; text-align: right; }
+  td { border: 1px solid #cfd8e3; padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7fb; }
+  .cover { text-align: center; padding-top: 55px; }
+  .cover h1 { border: none; font-size: 26pt; line-height: 1.4; }
+  .cover .sub { font-size: 13.5pt; color: #555; margin-top: 8px; }
+  .badge { display: inline-block; background: #0f3460; color: #fff; padding: 4px 14px; border-radius: 14px; font-size: 10pt; margin: 4px; }
+  .tip { background: #eaf2fb; border-inline-start: 4px solid #0f3460; padding: 8px 12px; margin: 10px 0; font-size: 10.5pt; }
+  .warn { background: #fff6e5; border-inline-start: 4px solid #f0a500; padding: 8px 12px; margin: 10px 0; font-size: 10.5pt; }
+  ul, ol { padding-inline-start: 22px; }
+  li { margin-bottom: 5px; }
+  code { background: #eef1f6; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 9.5pt; direction: ltr; unicode-bidi: embed; }
+  .ref { font-weight: bold; color: #0f3460; white-space: nowrap; }
+  .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #999; font-size: 9pt; color: #666; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>🗺️ خريطة مذاكرة<br>ورقة المراجعة المنهجية عن Agentic AI وأمن إنترنت الأشياء</h1>
+  <div class="sub">Nageshwaran &amp; Ezekiel, <i>Electronics</i> 2026, 15(12), 2740<br>دليل قراءة موجّه لمشروع CERBERUS</div>
+  <div style="margin-top:18px;">
+    <span class="badge">153 دراسة مراجَعة</span>
+    <span class="badge">144 مرجعًا</span>
+    <span class="badge">19 نوفمبر 2026</span>
+  </div>
+</div>
+
+<h1>1. بطاقة الورقة</h1>
+<table>
+  <tr><th>العنصر</th><th>التفاصيل</th></tr>
+  <tr><td>العنوان</td><td>Agentic AI and Large Language Models for Autonomous IoT Cybersecurity: A Systematic Survey, Taxonomy, and Research Roadmap</td></tr>
+  <tr><td>المؤلفون</td><td>Vinoth Nageshwaran (University of the Cumberlands) و Soundararajan Ezekiel (Indiana University of Pennsylvania)</td></tr>
+  <tr><td>المجلة</td><td>Electronics — MDPI — 2026، المجلد 15، العدد 12، رقم المقال 2740</td></tr>
+  <tr><td>DOI</td><td>10.3390/electronics15122740 — مفتوحة الوصول (CC BY)</td></tr>
+  <tr><td>المنهج</td><td>مراجعة منهجية PRISMA 2020 — 153 دراسة (2020–2026) من IEEE Xplore وACM Digital Library ومجلات MDPI</td></tr>
+  <tr><td>الإطار التصنيفي</td><td>4 أعمدة: بنية الوكيل (single/multi) · استراتيجية التفكير (CoT/ReAct/plan-and-solve/tool-use) · نطاق الفعل (detection/response/hunting/vuln-discovery/deception) · التوطين (edge/fog/cloud)</td></tr>
+  <tr><td>المرفقات</td><td>Kit إعادة إنتاجية: GitHub <code>vnageshwaran-de/agentic-iot-security</code> + Zenodo DOI 10.5281/zenodo.20726552 (v0.3.0)</td></tr>
+  <tr><td>طبيعة الأدلة</td><td><b>مراجعة فقط — لا تجارب جديدة.</b> الـ kit نفسه وصفه المؤلفون «توضيحي/مبدئي» ولا تعتمد عليه أي نتيجة في الورقة</td></tr>
+</table>
+<div class="tip">📌 <b>صيغة الاستشهاد (APA):</b> Nageshwaran, V., &amp; Ezekiel, S. (2026). Agentic AI and Large Language Models for Autonomous IoT Cybersecurity: A Systematic Survey, Taxonomy, and Research Roadmap. <i>Electronics</i>, 15(12), 2740. https://doi.org/10.3390/electronics15122740</div>
+
+<h1>2. لماذا هذه الورقة تخص CERBERUS تحديدًا</h1>
+<table>
+  <tr><th>ما تقوله الورقة</th><th>الموضع</th><th>ما فعلته أنت</th></tr>
+  <tr><td><b>المعمارية الهجينة</b>: ML حتمي بسرعة الخط + LLM للحالات الغامضة فقط = «أكثر نمط واقعي للإنتاج» لأنها تُوزّع تكلفة الـ LLM على الأحداث التي تحتاج تفكيرًا فعليًا</td><td>§5.1.3 (ص14)</td><td>مطابق: محرك كشف ML/Rules سريع + وكيلان LLM فوقه (attack/defense)</td></tr>
+  <tr><td><b>Response orchestration</b>: من 41 دراسة IoT-IDS في المراجعة، 38 (≈93%) تعمل detection-only — الاستجابة هي الأقل نضجًا والأعلى خطورة</td><td>§5.3.2 (ص16)</td><td>أنت في الـ 7% الباقية: عزل فعلي محدود بالسياسة + سجل تدقيق</td></tr>
+  <tr><td><b>Anomaly interpretation</b>: الكاشفات التقليدية تُعلّم الشذوذ لكنها لا تستطيع قول «لماذا» — والـ LLM+XAI يسدّان الفجوة</td><td>§6.1 (ص18)</td><td>SHAP/LIME + أسباب القواعد على كل إنذار</td></tr>
+  <tr><td><b>CICIoT2023</b> هو المعيار الفعلي (de facto) للمجال: 33 هجومًا في 7 عائلات</td><td>§7.1 وTable 9 (ص21–23)</td><td>نفس الداتاسيت — مخطط الـ 48 ميزة</td></tr>
+</table>
+
+<h1>3. التحذيرات التصميمية الستة (الأهم في الورقة)</h1>
+
+<h2>3.1 حقن الأوامر في الوكلاء (Prompt Injection)</h2>
+<p>المخاطر نوعان: هجمات تقليدية على كاشفات ML، وهجمات جديدة على الـ LLM: أوامر مدسوسة في البيانات التي يقرأها الوكيل. النسخة غير المباشرة (indirect) تُزرع داخل بيانات طرف ثالث يقرأها الوكيل لاحقًا. كل نماذج الإنتاج المسجلة تظهر معدلات نجاح حقن بين <b>26% و41%</b> — ولا يوجد دفاع حالي ينزل تحت 10%. الدفاعات الموصى بها متعددة الطبقات: تنقية تركيبية + إطار «هذه بيانات لا أوامر» + بوابات أدوات + عزل بين الوكلاء.</p>
+<p><b>ماذا يعني لك:</b> الحزم والـ logs التي يقرأها وكيل الدفاع قد تحتوي نصًا خبيثًا. أضف طبقة <b>sanitize + untrusted-data framing</b> على كل نتيجة أداة قبل دخولها سياق الـ LLM.</p>
+
+<h2>3.2 أنماط الفشل المركّبة في الحلقات متعددة الخطوات</h2>
+<ul>
+  <li><b>Error propagation</b>: خطأ مبكر في خطوة ReAct يضلل كل الخطوات التالية، وأحيانًا بشكل غير مرئي للمحلل.</li>
+  <li><b>Context poisoning</b>: سطر log خبيث يلوّث تفكير الوكيل عبر المحادثة كلها.</li>
+  <li><b>Tool-use amplification</b>: استعلام خاطئ ينتج نتيجة ضخمة تُغرق نافذة السياق وتُسقط الدليل المهم.</li>
+</ul>
+<p>فقط 5 دراسات من 153 تقيس هذه الأنماط — و<b>لا واحدة</b> تقيسها كميًا. <b>فرصة بحثية:</b> أضف اختبارًا متعدد الأدوار لـ CERBERUS يقيس هذه الأنماط الثلاثة.</p>
+
+<h2>3.3 مفارقة زمن الاستجابة والأمان (Latency–Security Paradox)</h2>
+<p>حلقة ReAct من 3 خطوات أغلى ~4× من تصنيف واحد. الأزمنة المرجعية: edge 70–400ms، fog 300–900ms، cloud 1–5 ثوانٍ لكل نداء. النتيجة: <b>الحلول الهجينة التي تفوّض القرارات السريعة لـ ML وتصعّد للـ LLM فقط في الحالات الغامضة هي الحل الواقعي الوحيد</b>.</p>
+<p><b>ماذا يعني لك:</b> معماريتك صحيحة — وثّقها في الورقة بهذا المنطق، وقيّم زمن القرار p50/p95/p99.</p>
+
+<h2>3.4 الحوكمة والمسؤولية</h2>
+<p>الورقة تعمل مثالًا صريحًا: وكيل عزل آلي (autonomous quarantine) للأجهزة الطبية/الحرجة = <b>نظام AI عالي المخاطر</b> تحت EU AI Act (Annex III). مقابل نظام كشف يُصدر إنذارات لمحلل بشري = محدود المخاطر. الإطار الأمريكي NIST AI RMF (دورة Govern–Map–Measure–Manage) يحدد التوقعات.</p>
+<div class="warn">⚠️ <b>إجراء مطلوب لمشروعك:</b> أضف إلى README/التوثيق سطرًا صريحًا: <b>«Research prototype — not for production. Human approval required for consequential actions.»</b>، واربط سجل التدقيق بدورة NIST AI RMF. هذا ما يفعله أي مشروع يريد النشر.</div>
+
+<h2>3.5 التعميم عبر مجموعات البيانات</h2>
+<p>الكاشفات التي تصل إلى 99% على داتاسيت واحد تفقد <b>10–20 نقطة مئوية</b> عند الانتقال لداتاسيت آخر. 9 دراسات على الأقل في المراجعة توثق هذا التدهور. التوصية: زوج <b>Edge-IIoTset ↔ CICIoT2023</b> هو الافتراضي المعقول لأن التوزيعات مختلفة والبروتوكولات مشتركة.</p>
+<p><b>ماذا يعني لك:</b> أضف نتيجة transfer واحدة على الأقل — وإلا ستُقرأ نتائجك كـ «single-dataset overfit».</p>
+
+<h2>3.6 المعيار الرباعي لتقييم الوكلاء</h2>
+<p>لا يوجد benchmark حالي يقيس الأربعة معًا: (1) دقة التصنيف، (2) زمن القرار لكل خطوة بما فيها نداءات الأدوات، (3) المتانة ضد حقن الأوامر، (4) التكلفة (tokens/طاقة/دولار) لكل قرار. <b>فرصة:</b> CERBERUS يمكن أن يقدّم أول harness يقيس الأربعة على بيانات IoT حقيقية.</p>
+
+<h1>4. أهم 10 مراجع للمذاكرة (مرتبة)</h1>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>لماذا تقرأه</th><th>أين تقرأ فيه</th></tr>
+  <tr><td class="ref">[45]</td><td>Neto et al., CICIoT2023, <i>Sensors</i> 2023</td><td>الداتاسيت بتاعك: 33 هجومًا / 7 عائلات / ميزات الشبكة</td><td>وصف الهجمات + توزيع الميزات + طريقة الجمع</td></tr>
+  <tr><td class="ref">[89]</td><td>Yao et al., ReAct, ICLR 2023</td><td>الأساس النظري لحلقة الأدوات في <code>agents/scaffold.py</code></td><td>الفكرة + أمثلة التفكير/الفعل المتشابك</td></tr>
+  <tr><td class="ref">[22]</td><td>Chhabra et al., Agentic AI Security, IEEE Access 2025</td><td>أشمل خريطة لمخاطر الوكلاء ودفاعاتهم وتقييمهم</td><td>جدول التهديدات + التقييم</td></tr>
+  <tr><td class="ref">[28]</td><td>Ismail et al., SOAR-LLM, <i>Information</i> 2025</td><td>أقرب نظام لطبقة استجابتك: playbooks ديناميكية + بوابة موافقة</td><td>المعمارية + ضوابط الحوكمة</td></tr>
+  <tr><td class="ref">[57]</td><td>Fatema et al., Federated XAI IDS + SHAP, <i>Future Internet</i> 2025</td><td>SHAP داخل IDS + الخصوصية — اتجاه تطوير <code>detection/explain.py</code></td><td>طريقة دمج SHAP + النتائج</td></tr>
+  <tr><td class="ref">[58]</td><td>Hermosilla et al., SHAP vs LIME in IDS, <i>Appl. Sci.</i> 2025</td><td>مقارنة مباشرة — تشرح لك لماذا SHAP مرجع وLIME ضجيجي</td><td>المنهجية + جدول المقارنة</td></tr>
+  <tr><td class="ref">[94]</td><td>Greshake et al., Indirect Prompt Injection, ACM AISec 2023</td><td>الورقة التأسيسية لهجمات الحقن غير المباشر على تطبيقات LLM</td><td>التهديدات + أمثلة الهجوم</td></tr>
+  <tr><td class="ref">[110]</td><td>Liu et al., Benchmarking Prompt Injection, USENIX Sec 2024</td><td>إطار رسمي لاختبار وكلائك</td><td>التهديدات/الدفاعات + القياس</td></tr>
+  <tr><td class="ref">[112]</td><td>Arp et al., Dos and Don'ts of ML in Security, USENIX Sec 2022</td><td>إلزامية لأي تقييم أمني — ستمنعك من أخطاء منهجية شائعة</td><td>كل الـ «Don'ts» — قصيرة وحاسمة</td></tr>
+  <tr><td class="ref">[97]/[98]</td><td>NIST AI RMF 1.0 (AI 100-1) + EU AI Act 2024/1689</td><td>الإطار القانوني والحوكمة لطبقة العزل</td><td>دورة Govern–Map–Measure–Manage + Annex III</td></tr>
+</table>
+
+<h1>5. مراجع إضافية حسب وحدات المشروع</h1>
+
+<h2>5.1 الكشف ومجموعات البيانات</h2>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>الفائدة</th></tr>
+  <tr><td class="ref">[73]</td><td>SEED — Edge Transformer to IoT Decisions, <i>Sensors</i> 2026</td><td>99.9% على Edge-IIoTset بـ sub-70ms — أقرب رقم لمقارنة معماريتك الهجينة</td></tr>
+  <tr><td class="ref">[71]</td><td>BARTPredict, GLOBECOM 2024</td><td>98% دقة تنبؤ بالهجمات — مثال على حدود المقارنة أحادية الداتاسيت</td></tr>
+  <tr><td class="ref">[74]</td><td>Aljerbi et al., Multi-Class IoT Attack Detection (LLM), SIU 2025</td><td>DistilBERT + تخصيص لكل عائلة هجوم</td></tr>
+  <tr><td class="ref">[16]</td><td>Transformer LLMs للـ log anomaly, IEEE BigData 2023</td><td>أساس كشف الشذوذ النصي</td></tr>
+  <tr><td class="ref">[87]</td><td>LogRESP-Agent, <i>Appl. Sci.</i> 2025</td><td>تحليل logs متكرر + TTP</td></tr>
+  <tr><td class="ref">[70]</td><td>Park &amp; Choi, Anomaly Detection via Reasoning, <i>Appl. Sci.</i> 2025</td><td>ScaleAD — فلترة Trie + تحقق LLM</td></tr>
+  <tr><td class="ref">[19]</td><td>Karlsen et al., Benchmarking LLMs, JNSM 2024</td><td>كيف تُقيّم LLM في الأمن</td></tr>
+  <tr><td class="ref">[78]</td><td>Zachos et al., TON_IoT edge datasets, CAMAD 2021</td><td>داتاسيت بديل متعدد الوسائط</td></tr>
+  <tr><td class="ref">[2]/[3]</td><td>Haque et al. (Sensors 2023) / Orman (Appl. Sci. 2025)</td><td>Edge-IIoTset وIIoT — داتاسيت الـ transfer الثاني</td></tr>
+  <tr><td class="ref">[142]</td><td>Zhou et al., Hierarchical Adversarial Attacks on GNN-IDS, IoT-J 2022</td><td>هجمات خصومية على كاشفات IoT</td></tr>
+  <tr><td class="ref">[143]</td><td>Zhang et al., Adversarial Attacks on DL-NIDS, ToN 2022</td><td>التهديد الخصومي الكلاسيكي</td></tr>
+  <tr><td class="ref">[144]</td><td>Heydari &amp; Nyarko, Adversarially Trained NIDS, <i>Electronics</i> 2025</td><td>دفاع: تدريب خصومي</td></tr>
+</table>
+
+<h2>5.2 التفسير (Explainability)</h2>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>الفائدة</th></tr>
+  <tr><td class="ref">[55]</td><td>Nwakanma et al., XAI for IDS Review, <i>Appl. Sci.</i> 2023</td><td>مراجعة شاملة لتقنيات XAI في IDS</td></tr>
+  <tr><td class="ref">[56]</td><td>Alabbadi &amp; Bajaber, XAI IDS over IoT Streams, <i>Sensors</i> 2025</td><td>تفسير على تدفقات IoT الحية</td></tr>
+  <tr><td class="ref">[57]</td><td>Fatema et al., Federated XAI IDS, <i>Future Internet</i> 2025</td><td>SHAP + Federated Learning — أهم مرجع لتطويرك القادم</td></tr>
+  <tr><td class="ref">[58]</td><td>Hermosilla et al., SHAP vs LIME, <i>Appl. Sci.</i> 2025</td><td>مقارنة عملية — أساس تبرير اختيارك</td></tr>
+  <tr><td class="ref">[69]</td><td>Georgiades &amp; Hussain, Explainable Cross-Layer IDS in IoMT, <i>Electronics</i> 2025</td><td>تفسير عبر الطبقات — قريب من فكرة «طبقتين معًا»</td></tr>
+  <tr><td class="ref">[104]</td><td>Karras et al., XAI for Federated/Distributed IoT, <i>Future Internet</i> 2026</td><td>مسح حديث لـ XAI الموزع</td></tr>
+  <tr><td class="ref">[134]</td><td>Asal et al., SHAP + LIME for IIoT, HORA 2025</td><td>تطبيق مباشر للاثنين معًا في IIoT</td></tr>
+</table>
+
+<h2>5.3 الوكلاء وحلقة الأدوات</h2>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>الفائدة</th></tr>
+  <tr><td class="ref">[89]</td><td>ReAct, ICLR 2023</td><td>الأساس — اقرأه أولًا</td></tr>
+  <tr><td class="ref">[93]</td><td>Wei et al., Chain-of-Thought, NeurIPS 2022</td><td>التفكير المتسلسل — أساس بديل أبسط</td></tr>
+  <tr><td class="ref">[22]</td><td>Chhabra et al., Agentic AI Security, IEEE Access 2025</td><td>التهديدات/الدفاعات/التقييم للوكلاء</td></tr>
+  <tr><td class="ref">[26]</td><td>He et al., Security &amp; Privacy of LLM Agents, ACM CSUR 2026</td><td>مراجعة أمن وكلاء LLM بدراسات حالة</td></tr>
+  <tr><td class="ref">[23]</td><td>Hmimou et al., Multi-Agent Threat Detection &amp; Correlation, IEEE Access 2025</td><td>أقرب بنية لوكيل الدفاع: ربط إنذارات متعددة</td></tr>
+  <tr><td class="ref">[24]</td><td>Sheth et al., Agentic Threat Hunting, eIT 2025</td><td>صيد تهديدات تكيفي</td></tr>
+  <tr><td class="ref">[25]</td><td>Chen et al., iThelma, IEEE CNS 2025</td><td>وكيل صيد مدفوع بـ playbooks</td></tr>
+  <tr><td class="ref">[27]</td><td>Srinivas et al., AI-Augmented SOC, JCP 2025</td><td>أتمتة SOC بالـ LLM</td></tr>
+  <tr><td class="ref">[88]</td><td>Wang et al., Polymorphic Prompt Defense, DSN-S 2025</td><td>دفاع ضد الحقن عبر تنويع المطالبات</td></tr>
+  <tr><td class="ref">[94]</td><td>Greshake et al., AISec 2023</td><td>الحقن غير المباشر — التأسيسي</td></tr>
+  <tr><td class="ref">[110]</td><td>Liu et al., USENIX Sec 2024</td><td>إطار تقييم الحقن</td></tr>
+  <tr><td class="ref">[95]</td><td>Carlini et al., Are Aligned NNs Adversarially Aligned?, NeurIPS 2023</td><td>حدود المحاذاة — مخاطر النماذج</td></tr>
+</table>
+
+<h2>5.4 الاستجابة والحوكمة</h2>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>الفائدة</th></tr>
+  <tr><td class="ref">[28]</td><td>SOAR-LLM, <i>Information</i> 2025</td><td>playbooks مولّدة ديناميكيًا + بوابة ثقة</td></tr>
+  <tr><td class="ref">[115]</td><td>SOAR للسيارات المتصلة, ICAIC 2025</td><td>استجابة آلية في سياق حرج</td></tr>
+  <tr><td class="ref">[116]</td><td>SOAR + EDR, OCIT 2025</td><td>احتواء طرفي — شبيه بعزل الأجهزة</td></tr>
+  <tr><td class="ref">[117]</td><td>IntelliSOAR, ICISS 2024</td><td>إثراء الإنذارات بالـ LLM</td></tr>
+  <tr><td class="ref">[53]</td><td>Baruwal Chhetri et al., Human-AI Teaming ضد إجهاد الإنذارات, TOIT 2024</td><td>التصميم المتدرج: آلي للروتيني + بشري للجديد</td></tr>
+  <tr><td class="ref">[54]</td><td>Tilbury &amp; Flowerday, Humans and Automation in SOC, JCP 2024</td><td>دور العنصر البشري</td></tr>
+  <tr><td class="ref">[97]</td><td>NIST AI RMF 1.0 (AI 100-1), 2023</td><td>دورة Govern–Map–Measure–Manage</td></tr>
+  <tr><td class="ref">[98]</td><td>EU AI Act (Regulation 2024/1689)</td><td>تصنيف المخاطر + Annex III للبنية الحرجة</td></tr>
+  <tr><td class="ref">[6]</td><td>ENISA IoT Security Guidelines, 2020</td><td>ممارسات الأمن للـ IoT</td></tr>
+</table>
+
+<h2>5.5 الخصوصية والتعلّم الموحد (للمرحلة القادمة)</h2>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>الفائدة</th></tr>
+  <tr><td class="ref">[96]</td><td>McMahan et al., FedAvg, AISTATS 2017</td><td>أساس التعلّم الموحد</td></tr>
+  <tr><td class="ref">[65]</td><td>Tang et al., MT-FBERT, <i>Future Internet</i> 2025</td><td>كشف حركة خبيثة بتعلّم موحد فعّال</td></tr>
+  <tr><td class="ref">[66]</td><td>He et al., Federated RAG for IoT, <i>Electronics</i> 2026</td><td>RAG موحد للبيئات محدودة الموارد</td></tr>
+  <tr><td class="ref">[101]</td><td>Joshi &amp; Baidya, Securing the Cognitive Layer, JCP 2026</td><td>تهديدات وخصوصية دمج LLM–IoT</td></tr>
+</table>
+
+<h2>5.6 السياق والمقدمة (Related Work)</h2>
+<table>
+  <tr><th>#</th><th>المرجع</th><th>الفائدة</th></tr>
+  <tr><td class="ref">[7]–[9]</td><td>Mozi botnet (CSCI 2021 / IJIS 2022 / TrustCom 2022)</td><td>مثال حي على حجم تهديد IoT: 1.5M جهاز مصاب</td></tr>
+  <tr><td class="ref">[10]–[15]</td><td>Mirai variants + botnet detection (2018–2024)</td><td>خط أساس أدبيات كشف البوتنت</td></tr>
+  <tr><td class="ref">[1]</td><td>López Delgado &amp; López Ramos, Generative AI in IoT Security, <i>Electronics</i> 2024</td><td>مسح عام للـ GenAI في أمن IoT</td></tr>
+  <tr><td class="ref">[20]</td><td>Jaffal et al., LLMs in Cybersecurity, <i>AI</i> 2025</td><td>تطبيقات وثغرات LLM الأمنية</td></tr>
+  <tr><td class="ref">[99]</td><td>Zhang et al., When LLMs Meet Cybersecurity, <i>Cybersecurity</i> 2025</td><td>مراجعة منهجية شاملة</td></tr>
+  <tr><td class="ref">[100]</td><td>Jamshidi et al., LLMs in IoT Security, <i>Internet of Things</i> 2025</td><td>مراجعة دور LLM في أمن IoT</td></tr>
+</table>
+
+<h1>6. خطة المذاكرة — 5 أسابيع</h1>
+<table>
+  <tr><th>الأسبوع</th><th>اقرأ</th><th>الهدف</th><th>المخرج العملي</th></tr>
+  <tr><td><b>1</b></td><td>[45] CICIoT2023 + [112] Dos and Don'ts</td><td>تفهم داتاسيتك وتتعلم التقييم السليم</td><td>جدول يربط الـ 33 هجومًا بعائلاتك السبعة + قائمة أخطاء تقييم تتجنبها</td></tr>
+  <tr><td><b>2</b></td><td>[89] ReAct + [22] Agentic AI Security</td><td>أساس حلقة الأدوات + خريطة المخاطر</td><td>تحديث سقالة الوكلاء بطبقة sanitization</td></tr>
+  <tr><td><b>3</b></td><td>[28] SOAR-LLM + [57]/[58] XAI</td><td>مقارنة طبقة استجابتك + تعميق SHAP/LIME</td><td>قسم «Response orchestration» في الورقة + جدول SHAP vs LIME</td></tr>
+  <tr><td><b>4</b></td><td>[94] + [110] Prompt Injection</td><td>بناء adversarial harness لوكلائك</td><td>25 نمط حقن + نسبة نجاح مقاسة</td></tr>
+  <tr><td><b>5</b></td><td>[97] + [98] + §8.6</td><td>تجهيز قسم الحوكمة</td><td>جدول ربط: audit log ↔ NIST RMF + سطر Research use only</td></tr>
+</table>
+
+<h1>7. قائمة الإضافات المطلوبة للمشروع (Checklist)</h1>
+<ul>
+  <li>☐ سطر صريح في README: <b>Research prototype — not for production. Human approval required for consequential actions.</b></li>
+  <li>☐ نتيجة <b>cross-dataset transfer</b>: Edge-IIoTset → CICIoT2023 (وعكسيًا إن أمكن)</li>
+  <li>☐ قياس <b>زمن القرار</b>: p50 / p95 / p99 لكل قرار بما فيه نداءات الأدوات</li>
+  <li>☐ قياس <b>مقاومة الحقن</b>: نسبة النجاح على 25+ نمط (نمط الـ kit أو أنماطك)</li>
+  <li>☐ <b>تكلفة القرار</b>: tokens/دولار لكل قرار (سجلها من الـ API)</li>
+  <li>☐ <b>sanitize + untrusted-data framing</b> على كل نتيجة أداة قبل سياق الـ LLM</li>
+  <li>☐ اختبار <b>multi-turn adversarial</b> لأنماط الفشل الثلاثة (error propagation / context poisoning / tool-use amplification)</li>
+  <li>☐ جدول ربط <b>audit log ↔ NIST AI RMF</b> (Govern–Map–Measure–Manage)</li>
+  <li>☐ توثيق <b>بوابة الموافقة البشرية</b> للأجهزة الحرجة (tier-1/tier-2) — مطلب EU AI Act</li>
+  <li>☐ قسم <b>Related Work &amp; Positioning</b> في الورقة/README — موجود الآن في <code>docs/PLAN.md</code></li>
+</ul>
+
+<h1>8. كيف تقرأ الورقة نفسها بكفاءة</h1>
+<ol>
+  <li><b>اقرأ أولًا:</b> §1 (المقدمة والمساهمات) — 3 صفحات فقط، تعطيك الخريطة.</li>
+  <li><b>ثم اقفز إلى:</b> §5 (التصنيف الرباعي) — هو قلب الورقة ومرجعك الدائم.</li>
+  <li><b>ثم:</b> §7 (Datasets) — الجداول 1 و9 هي الأهم لك عمليًا.</li>
+  <li><b>ثم:</b> §8 (التحديات) — كل قسم فيه تحذير تصميمي مباشر لمشروعك.</li>
+  <li><b>ثم:</b> §9 (Roadmap) — فرص البحث المستقبلي (federated agentic learning، verifiable reasoning، trustworthy multi-agent، edge-hardened agents).</li>
+  <li><b>تخطَّ في القراءة الأولى:</b> §3 (PRISMA methodology) و§4 (Related Surveys) و§10 (kit details) — للاطلاع السريع فقط.</li>
+  <li><b>المراجع:</b> ابدأ بالعشرة في القسم 4 أعلاه، ثم المرجع المحدد لكل وحدة عند الحاجة.</li>
+</ol>
+<div class="tip">💡 <b>ملاحظة عن الـ companion kit:</b> الـ kit (GitHub + Zenodo) يقدّم قوالب prompts وحلقات مرجعية (single ReAct + multi-agent pipeline/debate/blackboard) وharness تقييم. قيمته «توضيحية» فقط حسب المؤلفين، لكن <b>بنية الـ prompts وقائمة الأدوات</b> (SIEM query, packet sniff, MITRE lookup, device-isolate, threat-feed-lookup) مفيدة كقائمة تحقق لما يجب أن يمتلكه وكيل CERBERUS في المراحل القادمة.</div>
+
+<h1>9. خلاصة في سطور</h1>
+<ul>
+  <li>الورقة <b>تؤكد صحة معماريتك</b>: هجين ML+LLM هو النمط الواقعي، وأنت من الـ 7% الذين ينفذون استجابة فعلية.</li>
+  <li>أهم <b>3 مخاطر</b> يجب أن تعالجها: prompt injection، أنماط الفشل المركّبة، والتقييم أحادي الداتاسيت.</li>
+  <li>أهم <b>3 إضافات</b> للورقة البحثية: cross-dataset transfer، زمن القرار p50/p95/p99، ومقاومة الحقن المقاسة.</li>
+  <li>أهم <b>3 مراجع</b> تبدأ بها: [45] داتاسيتك، [89] ReAct، [112] منهجية التقييم.</li>
+  <li>الحوكمة ليست شكلية: وكيل عزل آلي = نظام عالي المخاطر قانونيًا — وثّق ذلك من الآن.</li>
+</ul>
+
+<div class="footer">CERBERUS — خريطة مذاكرة ورقة Nageshwaran &amp; Ezekiel (Electronics 2026, 15, 2740) · 19 نوفمبر 2026</div>
+
+</body>
+</html>

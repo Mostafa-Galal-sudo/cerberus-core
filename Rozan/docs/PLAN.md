@@ -34,3 +34,57 @@ Full software stack validated against the public `CICIoT2023` dataset and simula
 - Standard Wi-Fi AP/router (no OpenWrt/custom firmware dependency)
 - Raspberry Pi or mini PC as Linux gateway
 - NRF24L01 2.4 GHz radios, physically shielded enclosure (NTRA RF compliant)
+
+## Related work & positioning (Nageshwaran & Ezekiel 2026)
+
+Primary anchor: Nageshwaran, V.; Ezekiel, S. *Agentic AI and Large Language Models for Autonomous IoT Cybersecurity: A Systematic Survey, Taxonomy, and Research Roadmap.* Electronics **2026**, 15(12), 2740. https://doi.org/10.3390/electronics15122740 (PRISMA 2020, 153 studies 2020–2026, four-pillar taxonomy, companion kit DOI 10.5281/zenodo.20726552). Study map: `docs/2026-11-19_cerberus-study-map.pdf`.
+
+### Where CERBERUS sits in the taxonomy
+
+| Paper claim | Location | CERBERUS position |
+|---|---|---|
+| Hybrid line-rate ML + LLM reasoning for ambiguous cases is the most production-realistic pattern | §5.1.3 | Same: deterministic hybrid engine decides fast; LLM agents only investigate escalated alerts |
+| 93% of surveyed IoT-IDS work is detection-only; response orchestration is the least mature and riskiest layer | §5.3.2 | In the remaining 7%: policy-bounded isolation + audit trail + incident timelines |
+| Conventional detectors flag anomalies but cannot say *why*; LLM+XAI closes the gap | §6.1 | SHAP authoritative + LIME cross-check + rule reasons on every alert |
+| CICIoT2023 is the de facto benchmark (33 attacks / 7 families) | §7.1 | Same dataset and 48-feature schema; simulated traffic shares the schema |
+
+### Required evaluation additions (blocking for any paper submission)
+
+1. **Cross-dataset transfer** — train on CICIoT2023, test on Edge-IIoTset and vice versa; report the 10–20 pp degradation that §7.1 documents rather than hiding it.
+2. **Decision latency** — p50/p95/p99 per decision, including tool calls (ReAct 3-step loops are ~4× a single classification, §8.5).
+3. **Prompt-injection robustness** — measured success rate over ≥25 injection patterns (reuse the kit's `sanitize.py` corpus, §8.2; base refs [94], [110]).
+4. **Cost per decision** — tokens/USD per alert, logged from provider responses.
+5. **Multi-turn adversarial harness** — quantify error propagation, context poisoning, and tool-use amplification; only 5/153 studies report any compound failure mode, so this is a publishable gap.
+
+### Hardening work derived from the survey
+
+- [ ] Add `sanitize` + untrusted-data framing to every tool result before it enters the LLM context (`agents/scaffold.py`) — network payloads are attacker-controlled text.
+- [ ] Keep tool allow-lists and inter-agent boundaries explicit; document them as the layered defense §8.2 recommends.
+- [ ] Add a human-approval gate for tier-1/tier-2 (critical) devices on top of the existing confidence, protected-device, and rate-limit gates.
+- [ ] Add a `Research prototype — not for production. Human approval required for consequential actions.` notice to `README.md`.
+- [ ] Map the audit log to the NIST AI RMF cycle (Govern–Map–Measure–Manage).
+
+### Governance note
+
+The survey uses autonomous quarantine as its worked example of a **high-risk AI system** under the EU AI Act (Annex III) when applied to critical/medical devices, versus limited-risk for detection-only alerting. CERBERUS performs automated isolation, so the documentation must state the risk class, the human-oversight design, and the audit/explainability controls. Frameworks: NIST AI RMF 1.0 (AI 100-1, 2023) and Regulation (EU) 2024/1689.
+
+### Residual risks to track
+
+| Risk | Mitigation status |
+|---|---|
+| Indirect prompt injection via packet/log content | Partial — scope lock + tool allow-list; sanitization pending |
+| Compound failure modes in multi-step loops | Not measured — harness pending |
+| Single-dataset overfitting | Not measured — transfer study pending |
+| Unfaithful LLM narration vs. actual attribution | Mitigated for detection (SHAP is authoritative); agent narration still free-form |
+| Regulatory exposure of autonomous isolation | Partial — policy gates + audit; risk-class documentation pending |
+
+### Key references
+
+- **[45]** Neto et al., *CICIoT2023*, Sensors 2023 — dataset
+- **[89]** Yao et al., *ReAct*, ICLR 2023 — tool-calling loop
+- **[22]** Chhabra et al., *Agentic AI Security*, IEEE Access 2025 — threat/defense/evaluation map
+- **[28]** Ismail et al., *SOAR-LLM*, Information 2025 — closest response-layer precedent
+- **[57]/[58]** Fatema et al. (Federated XAI IDS) / Hermosilla et al. (SHAP vs LIME) — explainability
+- **[94]/[110]** Greshake et al. / Liu et al. — prompt injection threat + benchmark
+- **[112]** Arp et al., *Dos and Don'ts of ML in Computer Security*, USENIX Sec 2022 — evaluation discipline
+- **[97]/[98]** NIST AI RMF 1.0 / EU AI Act 2024/1689 — governance

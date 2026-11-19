@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CERBERUS — Knowledge Guide: Protocols, Attack, Defense &amp; Dashboard</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11.5pt; line-height: 1.7; color: #1a1a2e; margin: 0; }
+  h1 { font-size: 21pt; color: #0f3460; border-bottom: 3px solid #e94560; padding-bottom: 8px; margin-top: 30px; }
+  h2 { font-size: 15.5pt; color: #16213e; border-left: 5px solid #e94560; padding-left: 10px; margin-top: 26px; }
+  h3 { font-size: 12.5pt; color: #0f3460; margin-top: 18px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+  th { background: #16213e; color: #fff; padding: 7px 9px; text-align: left; }
+  td { border: 1px solid #cfd8e3; padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7fb; }
+  .flow { background: #f0f4fa; border: 1px solid #c9d6e8; border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 10.5pt; text-align: center; }
+  .warn { background: #fff6e5; border-left: 4px solid #f0a500; padding: 8px 12px; margin: 10px 0; font-size: 10.5pt; }
+  .tip { background: #eaf2fb; border-left: 4px solid #0f3460; padding: 8px 12px; margin: 10px 0; font-size: 10.5pt; }
+  .cover { text-align: center; padding-top: 60px; }
+  .cover h1 { border: none; font-size: 30pt; }
+  .cover .sub { font-size: 14pt; color: #555; }
+  .badge { display: inline-block; background: #0f3460; color: #fff; padding: 4px 14px; border-radius: 14px; font-size: 10pt; margin: 4px; }
+  ul, ol { padding-left: 22px; }
+  li { margin-bottom: 5px; }
+  .step { background: #eef7ee; border-left: 4px solid #1a7f37; padding: 8px 12px; margin: 10px 0; }
+  .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #999; font-size: 9pt; color: #666; text-align: center; }
+  .mini { font-size: 10pt; color: #444; }
+  code { background: #eef1f6; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 9.5pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>🐾 CERBERUS</h1>
+  <div class="sub">Knowledge &amp; Practical Guide<br>Protocols · Attack Layer · Defense Layer · Dashboard · How to Build It All</div>
+  <div style="margin-top:20px;">
+    <span class="badge">Concepts explained — no code</span>
+    <span class="badge">English edition</span>
+    <span class="badge">November 18, 2026</span>
+  </div>
+</div>
+
+<h1>1. The Big Picture: The Idea in One Minute</h1>
+<p>Picture a smart home with cameras, a thermostat, and smart plugs — all IoT devices talking over two protocols: <b>Wi-Fi</b> (the wireless link connecting them to the network) and <b>MQTT</b> (the messaging language they use to talk to the server). The CERBERUS platform puts a "guard dog" over both:</p>
+<div class="flow">🎯 <b>Simulated attack</b> ← 🛡️ <b>Hybrid detection</b> (rules + AI + behavioral fingerprint) ← 🔍 <b>Defense agent</b> (investigates, gathers evidence) ← ⛔ <b>Automated isolation</b> (after confirmation, under policy limits) ← 📺 <b>SOC dashboard</b> (live view of everything)</div>
+<p>The essence: the platform doesn't just catch attacks — it <b>explains why</b> (with scientific explainability tools), <b>acts</b> by isolating the malicious device, and <b>writes every step into an audit log</b> nobody can erase.</p>
+
+<h1>2. The Protocols: Understanding Them Before Defending Them</h1>
+
+<h2>2.1 MQTT — the Language of IoT Devices</h2>
+<p>MQTT is a lightweight messaging protocol designed specifically for low-power devices on slow networks. Its core ideas:</p>
+<ul>
+  <li><b>The Broker</b>: instead of every device talking to every device, there is one central server (the most popular is Mosquitto). All messages pass through it. That makes it <b>the most valuable target</b> in the network — if it falls, the whole network falls.</li>
+  <li><b>Publish/Subscribe</b>: a camera "publishes" its image to a topic like <code>home/cam1/image</code>, and your phone "subscribes" to that topic and receives everything posted to it. Topics split by a slash, like file paths.</li>
+  <li><b>QoS delivery levels</b>: 0 = fire-and-forget (messages may vanish), 1 = acknowledged at-least-once, 2 = double handshake (exactly once). Floods love QoS 0 because it's the fastest.</li>
+  <li><b>Ports</b>: 1883 (unencrypted — cheap devices still use it!) and 8883 (TLS-encrypted). An unencrypted port means anyone inside the network can read your messages.</li>
+  <li><b>Message types</b>: CONNECT (a device identifies itself), PUBLISH (send data), SUBSCRIBE (request delivery), PING (prove liveness). Also the "Last Will" feature — a device registers a farewell message published automatically if it dies abruptly. We will use exactly that later in detection.</li>
+</ul>
+
+<h2>2.2 Wi-Fi (802.11) — the Wireless Link Everything Rides On</h2>
+<ul>
+  <li><b>The network is built of frames</b> of three kinds: <b>management frames</b> (Beacon announcing the network, Deauthentication forcing a disconnect), <b>control frames</b> for acknowledgements, and <b>data frames</b> carrying your encrypted content.</li>
+  <li><b>A historic weakness</b>: management frames travel <b>unencrypted</b> — any nearby device can forge a Deauth frame and send it, and the victim accepts it without proof. The 802.11w update (Protected Management Frames) closes that hole, but many older devices ignore it.</li>
+  <li><b>Channels</b>: the 2.4&nbsp;GHz band is split into channels (1–13) that everyone shares over the same air. <b>You physically cannot "block" someone from transmitting</b> — jamming is just noise sent on the same channel.</li>
+</ul>
+<div class="tip">💡 <b>Why this matters to the platform:</b> our detector watches both layers simultaneously. A Wi-Fi drop (Deauth) and an MQTT surge (Flood) happening at the same moment indicate a combined attack — a single-layer sensor would miss half the story.</div>
+
+<h1>3. The Attack Layer: How Each Attack Actually Happens</h1>
+<p>The platform simulates 6 scenarios locally (prefixed <code>Sim-</code>). Each one reshapes the traffic "signature" in a distinctive way — and those signatures are exactly what the detector catches:</p>
+
+<table>
+  <tr><th>Attack</th><th>How it happens at protocol level</th><th>Its signature in the data</th></tr>
+  <tr><td><b>MQTT Flood</b></td><td>A compromised device opens thousands of CONNECTs or blasts PUBLISH packets at insane rates over QoS 0 — the broker drowns in requests and stops serving real devices (DoS).</td><td>Massive packet rate (&gt; 100,000/s), very short flows, repeated SYN flags with no completed handshakes</td></tr>
+  <tr><td><b>Injection</b></td><td>An attacker subscribes to topics and starts publishing forged messages — e.g., a fake "all is well" temperature reading while a real fire spreads, or commands to devices they don't own.</td><td>Normal rate but abnormal header lengths and size statistics — messages that "look" real in shape but not in structure</td></tr>
+  <tr><td><b>Spoofing</b></td><td>The attacker impersonates a real device (same client ID or the same publishing pattern), so the broker and the control panel believe messages came from the camera or the lock.</td><td>Deviation from the device's own fingerprint — size/header statistics differ from that device's norm</td></tr>
+  <tr><td><b>Deauthentication</b></td><td>Sending forged management frames of type Deauthentication aimed at a camera or thermostat — the device drops off the network and endlessly reconnects, and the security feed cuts out.</td><td>Elevated packet rate with violent SYN/Reset flag patterns and a collapse in the target's data flow</td></tr>
+  <tr><td><b>Rogue AP</b></td><td>The attacker runs a Wi-Fi hotspot with the exact same name as your network — your devices connect to whichever is closer/stronger, ending up attached to an attacker who reads everything before it reaches the internet.</td><td>Injection-like signature: huge headers and unusual protocol patterns</td></tr>
+  <tr><td><b>Jamming</b></td><td>Emitting radio noise on a 2.4&nbsp;GHz channel (e.g., with a cheap NRF24L01 radio) — the entire network drowns in noise and throughput collapses.</td><td>Measured at the RF level (channel energy) and reflected in a collapse of all patterns — planned for Phase 3</td></tr>
+</table>
+<div class="warn">🛡️ <b>Safety is non-negotiable:</b> all of these attacks are generated <b>locally as simulated data</b> or inside a radio-shielded enclosure — no real attack is ever aimed at any network outside the lab, in compliance with NTRA regulations.</div>
+
+<h1>4. The Defense Layer: How Attacks Are Detected, Explained, and Handled</h1>
+
+<h2>4.1 Three Witnesses on Every Packet</h2>
+<p>The platform's secret: every network flow is examined from 3 independent angles, each scoring 0 to 1:</p>
+<table>
+  <tr><th>Witness</th><th>How it thinks</th><th>Where its score comes from</th><th>Weight</th></tr>
+  <tr><td><b>Deterministic rules</b> (7 rules)</td><td>Like a seasoned analyst: "packet rate above 10k with SYN flags and no ACK — that's a flood, no doubt"</td><td>Thresholds calibrated on CICIoT2023 statistics — each rule reports its name and reason with the actual numbers</td><td>0.35</td></tr>
+  <tr><td><b>AI anomaly detector</b> (Isolation Forest + Autoencoder)</td><td>First it learns what <b>normal</b> traffic looks like only (zero attack examples!). Any packet shaped unlike nature gets a high strangeness score</td><td>Comparison against vast amounts of benign examples; the score is calibrated so normal traffic ≈ 0</td><td>0.5</td></tr>
+  <tr><td><b>Behavioral fingerprint</b></td><td>Every device has a "personality": cameras send lots of video, thermostats send tiny messages every minute. A device acting unlike itself is suspicious; a brand-new device appearing suddenly is even more so</td><td>Statistical deviation from that device's own baseline</td><td>0.15</td></tr>
+</table>
+<div class="flow">Final score = 0.5 × AI + 0.35 × Rules + 0.15 × Fingerprint — above <b>0.5</b> a formal alert fires</div>
+<p class="mini">Why fusion? Smart attacks can fool one witness (a slow flood fools the AI, a single violent packet looks normal to the rules) — but fooling all three at once is hard.</p>
+
+<h2>4.2 Explainability — Alerts Are Never a Black Box</h2>
+<p>Every alert ships with an <b>evidence report</b> answering "why?":</p>
+<ul>
+  <li><b>SHAP</b>: a scientific technique computing exactly "how much did each feature contribute to the decision" — e.g., "SHAP says: packet rate contributed +0.40, header length +0.15". This is the authoritative source.</li>
+  <li><b>LIME</b>: a companion technique working a different way (a simple surrogate model around that point) — when both agree on the same features, confidence rises.</li>
+  <li><b>Rule reasons</b>: readable text with the hit thresholds: "flood_rate: Rate=203,441, syn_flag_number=1.0".</li>
+</ul>
+
+<h2>4.3 The Defense Agent — the Smart Investigator</h2>
+<p>Raw alerts are not enough. The defense agent (the Llama 3.3 language model via Groq) behaves like a SOC analyst:</p>
+<ol>
+  <li><b>Gathers evidence</b>: opens any alert's full details (scores, explanation, raw features).</li>
+  <li><b>Connects the dots (correlation)</b>: clusters alerts on the same device and class — 15 "flood" alerts on the camera within one minute are <b>one campaign</b>, not 15 incidents.</li>
+  <li><b>Opens an incident</b> with an evidence file and a documented timeline: "02:15:01 flood detected ← 02:15:03 three witnesses verified ← 02:15:05 isolation requested".</li>
+  <li><b>Enforces the verdict</b>: if evidence is sufficient, it requests device isolation — <b>but the request must pass a strict policy gate</b>:</li>
+</ol>
+<table>
+  <tr><th>Response gate</th><th>Rule</th></tr>
+  <tr><td>Confirmed confidence</td><td>The incident score must be ≥ 0.5 — weak alerts are refused automatically</td></tr>
+  <tr><td>Protected devices</td><td>The gateway, broker, and SOC dashboard can never be isolated no matter what — isolating them would take down the defense itself</td></tr>
+  <tr><td>Rate limit</td><td>Never more than 5 isolations per hour — even if the agent "goes rogue"</td></tr>
+  <tr><td>Accountability</td><td>Every isolation is recorded: who decided, on which alert, with what confidence — in a permanent audit log</td></tr>
+</table>
+<div class="tip">💡 <b>How isolation actually works:</b> the gateway (your router or a Raspberry Pi) adds the malicious device's MAC address to a blocklist — the device keeps running but is fully cut off from the network. Unblocking is <b>manual only</b>, by the operator, to guard against wrongful automated exclusion.</div>
+
+<h1>5. The SOC Dashboard</h1>
+<p>A single dark-themed browser panel refreshing every 5 seconds — the same view an incident responder sees:</p>
+<table>
+  <tr><th>Component</th><th>What it shows</th><th>How to read it</th></tr>
+  <tr><td><b>Stats bar</b></td><td>alert count, open ones, devices, isolated, incidents</td><td>Zeros = a quiet network; a sudden spike = activity worth a look</td></tr>
+  <tr><td><b>Live alert table</b></td><td>every alert: time, device, attack class, confidence, status</td><td>Sort by confidence descending — highest first. Filter by status to see only open ones</td></tr>
+  <tr><td><b>Alert detail</b></td><td>score bars (fused/AI/rules/fingerprint) + SHAP attribution + rule reasons</td><td>This is where you judge "why did it fire?" — three full bars = high confidence</td></tr>
+  <tr><td><b>Devices</b></td><td>each device's state (trusted/suspicious/isolated) + last seen + manual isolate button</td><td>A device with an old "last seen" is missing or compromised</td></tr>
+  <tr><td><b>Incidents &amp; timelines</b></td><td>open incidents with every event chronologically ordered</td><td>The executive summary of any incident — from detection to isolation</td></tr>
+  <tr><td><b>External alerts</b></td><td>every alert pushes itself to Telegram or a webhook</td><td>Know from your phone without opening the dashboard</td></tr>
+</table>
+
+<h1>6. How to Build It All — Step by Step</h1>
+
+<h2>6.1 The Software Stage (ready and running now)</h2>
+<div class="step">✅ <b>Step 1 — Environment:</b> your machine has Python 3.12 (64-bit) in a virtual environment, with the scientific stack (scikit-learn, shap, pandas) installed. <span class="mini">(done)</span></div>
+<div class="step">✅ <b>Step 2 — Detection pipeline:</b> the hybrid engine is built, trained on simulated benign traffic, with the SHAP explanation layer attached. <span class="mini">(done)</span></div>
+<div class="step">✅ <b>Step 3 — Server &amp; dashboard:</b> a REST server + SQLite database + SOC dashboard live at <code>http://127.0.0.1:5000</code>. <span class="mini">(done)</span></div>
+<div class="step">✅ <b>Step 4 — Agents:</b> the attack agent (DeepSeek) and defense agent (Groq) with scope and rate guardrails — running in tests without real API calls. <span class="mini">(done)</span></div>
+<div class="step">📌 <b>Step 5 — Live agent operation:</b> put <code>DEEPSEEK_API_KEY</code> and <code>GROQ_API_KEY</code> into your <code>.env</code> file — then you can simply ask the attack agent: "test detection with an MQTT flood against the camera" and watch the loop run.</div>
+<div class="step">📌 <b>Step 6 — Real data:</b> download the CICIoT2023 CSVs into <code>data/</code> — the platform recalibrates its thresholds automatically on real-world numbers.</div>
+
+<h2>6.2 The Physical Stage (real testbed)</h2>
+<h3>Shopping list</h3>
+<table>
+  <tr><th>Item</th><th>Qty</th><th>Role</th></tr>
+  <tr><td>ESP32 (DevKit)</td><td>4–5</td><td>3–4 real IoT devices (fake camera/thermostat/plug) + 1–2 attack boards (Deauth / MQTT flood)</td></tr>
+  <tr><td>Standard Wi-Fi router</td><td>1</td><td>Access point — <b>important: no OpenWrt or custom firmware needed</b>, any off-the-shelf router works</td></tr>
+  <tr><td>Raspberry Pi or mini PC</td><td>1</td><td>The Gateway: runs Mosquitto + the CERBERUS detector + enforces isolation decisions</td></tr>
+  <tr><td>NRF24L01 + adapters</td><td>2</td><td>RF jamming attacks in Phase 3</td></tr>
+  <tr><td>Shielded enclosure (Faraday box)</td><td>1</td><td>Mandatory RF shielding for all wireless experiments — a legal requirement (NTRA)</td></tr>
+</table>
+<h3>Assembly and bring-up order</h3>
+<ol>
+  <li><b>Network:</b> connect the router to the Raspberry Pi with a cable — the router serves the ESP32s, and the Pi is the "command room" on the wired side. Everything stays inside an isolated lab network with no internet.</li>
+  <li><b>Broker:</b> install Mosquitto on the Pi on port 1883, with a username/password for devices (so detection learns on authorized traffic).</li>
+  <li><b>Devices:</b> flash the ESP32s with ESP-IDF (not Arduino — more mature and better instrumentation). Each device joins the router, opens an MQTT connection to the Pi, and publishes telemetry every second (temperature, state, counters). That traffic is the "normality" the detector learns from.</li>
+  <li><b>Attack boards:</b> flash a separate ESP32 able to send Deauth frames and PUBLISH floods — <b>inside the shielded enclosure only</b>.</li>
+  <li><b>Detection line:</b> connect the CERBERUS detector to a mirror of the traffic — either the Pi itself subscribes to everything passing through the broker (<code>/#</code> wildcard), or a Wi-Fi card sniffs frames (Monitor Mode). Every flow is converted into the same CICIoT2023 schema, so the same intelligence that ran on simulations runs unchanged on reality.</li>
+  <li><b>Acceptance test:</b> fire a flood from the attack board → the detector alerts → the defense agent investigates → isolation is enforced on the Pi (MAC block) → watch the full incident in the dashboard timeline.</li>
+  <li><b>Scientific validation:</b> repeat each scenario 30 times and report the true detection rate and false-alarm rate with confidence intervals — that becomes a section of your research.</li>
+</ol>
+<div class="warn">⚖️ <b>Rules that may never be broken:</b> (1) no RF attack outside the shielded enclosure, ever — a legal commitment in Egypt. (2) Automated isolation only for confirmed devices — no blanket responses. (3) Every automated action is written to a reviewable audit log.</div>
+
+<h1>7. The Summary in Six Lines</h1>
+<ul>
+  <li><b>Protocols</b>: MQTT (publish/subscribe messaging through a broker) and Wi-Fi (frames, with historically unprotected management frames) — devices run on both, so protection must see both.</li>
+  <li><b>Attack</b>: 6 simulated scenarios with distinct signatures — flood, injection, spoofing, deauth, rogue AP, jamming.</li>
+  <li><b>Defense</b>: 3 witnesses (rules + ML + fingerprint) → fused score → SHAP-explained alert → smart agent investigation → incident → policy-bounded isolation.</li>
+  <li><b>Dashboard</b>: a live 5-second view of everything, with explainability and isolation controls.</li>
+  <li><b>Build</b>: the software stage is 100% ready; the physical stage needs ESP32s + Mosquitto + a gateway + a shielded box — and the intelligence is ready to run on it unchanged, because it speaks the same data language.</li>
+</ul>
+
+<div class="footer">CERBERUS — Knowledge &amp; Practical Guide · November 18, 2026 · Companion to the Phase 1 completion report</div>
+
+</body>
+</html>

@@ -114,60 +114,91 @@ Set-Content -Path $loopScript -Encoding UTF8 -Value ($header2 + "`n" + $body2)
 Write-Ok "Closed-loop complete"
 
 # ---- 4. Start the SOC dashboard (background) --------------------------------
-Write-Step "Starting Cerberus SOC Dashboard on http://localhost:$Port"
+Write-Step "Starting Cerberus SOC Dashboard on http://127.0.0.1:$Port"
 
-$dashJob = Start-Job -ScriptBlock {
-    param($venv, $root, $port, $token, $db)
-    Set-Location $root
-    $env:CERBERUS_DB_PATH = $db
-    $env:CERBERUS_DASHBOARD_TOKEN = $token
-    & $venv -m uvicorn "src.dashboard:create_app" --factory --host 127.0.0.1 --port $port --no-access-log
-} -ArgumentList $Venv, $Root, $Port, $Token, $DB
-
-$ready = $false
-for ($i = 0; $i -lt 12; $i++) {
-    Start-Sleep 1
-    try {
-        $health = Invoke-RestMethod -Uri "http://localhost:$Port/api/health" -TimeoutSec 3
-        $ready = $true
-        break
-    } catch {
+# A failed previous run can leave a uvicorn child listening on the port.
+$stalePids = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
+             Select-Object -ExpandProperty OwningProcess -Unique
+foreach ($stalePid in $stalePids) {
+    $staleProc = Get-CimInstance Win32_Process -Filter "ProcessId=$stalePid" -ErrorAction SilentlyContinue
+    if ($staleProc -and $staleProc.CommandLine -like "*src.dashboard:create_app*" -and $staleProc.CommandLine -like "*$Venv*") {
+        Write-Warn "Stopping stale demo dashboard (PID $stalePid) on port $Port"
+        Stop-Process -Id $stalePid -Force -ErrorAction SilentlyContinue
+        Start-Sleep 1
+    } elseif ($staleProc) {
+        Write-Error "Port $Port is in use by PID $stalePid ($($staleProc.Name)). Set CERBERUS_PORT to another port."
+        exit 1
     }
 }
-if (-not $ready) {
-    Write-Error "Dashboard failed health check on http://localhost:$Port"
-    Stop-Job $dashJob -ErrorAction SilentlyContinue
-    Remove-Job $dashJob -ErrorAction SilentlyContinue
-    exit 1
-}
-Write-Ok "Dashboard live -- total_events=$($health.total_events)  open_incidents=$($health.open_incidents)"
-Write-Ok "Release token (X-Cerberus-Token): $Token"
 
-# ---- 5. Done ----------------------------------------------------------------
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  Cerberus SOC Dashboard:  http://localhost:$Port"           -ForegroundColor Yellow
-Write-Host ""
-Write-Host "  API endpoints:"                                             -ForegroundColor White
-Write-Host "    /api/health      -- system health + KPIs"                -ForegroundColor Gray
-Write-Host "    /api/overview    -- device grid + KPIs"                  -ForegroundColor Gray
-Write-Host "    /api/incidents   -- all incidents"                        -ForegroundColor Gray
-Write-Host "    /api/isolations  -- isolation registry"                   -ForegroundColor Gray
-Write-Host "    /api/audit       -- policy audit log"                     -ForegroundColor Gray
-Write-Host "    /api/stream      -- SSE live feed"                        -ForegroundColor Gray
-Write-Host ""
-Write-Host "  Press Ctrl+C to stop the dashboard."                       -ForegroundColor White
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host ""
+$dashOut = Join-Path $env:TEMP "cerberus_dashboard.out.log"
+$dashErr = Join-Path $env:TEMP "cerberus_dashboard.err.log"
+Remove-Item $dashOut, $dashErr -Force -ErrorAction SilentlyContinue
+$dashProc = $null
+
+# The child inherits both variables; H3 requires the release token at startup.
+$env:CERBERUS_DB_PATH = $DB
+$env:CERBERUS_DASHBOARD_TOKEN = $Token
 
 try {
-    while ($true) {
-        Start-Sleep 2
-        Receive-Job $dashJob 2>$null | ForEach-Object { Write-Host "  [dash] $_" -ForegroundColor DarkGray }
+    $dashProc = Start-Process -FilePath $Venv -PassThru -WindowStyle Hidden `
+        -WorkingDirectory $Root `
+        -ArgumentList @('-m', 'uvicorn', 'src.dashboard:create_app', '--factory', '--host', '127.0.0.1', '--port', "$Port", '--no-access-log') `
+        -RedirectStandardOutput $dashOut -RedirectStandardError $dashErr
+
+    # Use 127.0.0.1, not "localhost": on IPv6-first hosts localhost resolves to
+    # ::1, uvicorn binds IPv4 only, and Invoke-RestMethod does not fall back.
+    $healthUrl = "http://127.0.0.1:$Port/api/health"
+    $ready = $false
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep 1
+        try {
+            $health = Invoke-RestMethod -Uri $healthUrl -TimeoutSec 3
+            $ready = $true
+            break
+        } catch {
+            if ($dashProc.HasExited) { break }
+        }
     }
+    if (-not $ready) {
+        Write-Host "    [debug] dashboard stdout:" -ForegroundColor DarkGray
+        if (Test-Path $dashOut) { Get-Content $dashOut -Tail 12 }
+        Write-Host "    [debug] dashboard stderr:" -ForegroundColor DarkGray
+        if (Test-Path $dashErr) { Get-Content $dashErr -Tail 12 }
+        Write-Error "Dashboard failed health check on $healthUrl"
+        exit 1
+    }
+    Write-Ok "Dashboard live -- total_events=$($health.total_events)  open_incidents=$($health.open_incidents)"
+    Write-Ok "Release token (X-Cerberus-Token): $Token"
+
+    # ---- 5. Done ------------------------------------------------------------
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host "  Cerberus SOC Dashboard:  http://127.0.0.1:$Port"          -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  API endpoints:"                                            -ForegroundColor White
+    Write-Host "    /api/health      -- system health + KPIs"               -ForegroundColor Gray
+    Write-Host "    /api/overview    -- device grid + KPIs"                 -ForegroundColor Gray
+    Write-Host "    /api/incidents   -- all incidents"                       -ForegroundColor Gray
+    Write-Host "    /api/isolations  -- isolation registry"                  -ForegroundColor Gray
+    Write-Host "    /api/audit       -- policy audit log"                    -ForegroundColor Gray
+    Write-Host "    /api/stream      -- SSE live feed"                       -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Press Ctrl+C to stop the dashboard."                      -ForegroundColor White
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    while ($true) { Start-Sleep 2 }
 } finally {
-    Stop-Job   $dashJob -ErrorAction SilentlyContinue
-    Remove-Job $dashJob -ErrorAction SilentlyContinue
+    if ($dashProc) {
+        try {
+            Get-CimInstance Win32_Process |
+                Where-Object { $_.ParentProcessId -eq $dashProc.Id } |
+                ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+            Stop-Process -Id $dashProc.Id -Force -ErrorAction SilentlyContinue
+        } catch {
+        }
+    }
     Write-Host ""
     Write-Host "Dashboard stopped." -ForegroundColor Yellow
 }

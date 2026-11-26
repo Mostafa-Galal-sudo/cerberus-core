@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
 _WRITE_LOCK = threading.Lock()
+DEFAULT_DB_PATH = Path("data/lab/lab_traffic.db")
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
+PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS mqtt_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +28,79 @@ CREATE TABLE IF NOT EXISTS mqtt_events (
 CREATE INDEX IF NOT EXISTS idx_events_ts    ON mqtt_events (ts_utc);
 CREATE INDEX IF NOT EXISTS idx_events_topic ON mqtt_events (topic);
 CREATE INDEX IF NOT EXISTS idx_events_dev   ON mqtt_events (device_id);
+
+CREATE TABLE IF NOT EXISTS policy_audit (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts_utc       TEXT    NOT NULL,
+    actor        TEXT    NOT NULL,
+    action       TEXT    NOT NULL,
+    target       TEXT    NOT NULL,
+    verdict      TEXT    NOT NULL,
+    reason       TEXT    NOT NULL,
+    context_json TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_ts    ON policy_audit (ts_utc);
+CREATE INDEX IF NOT EXISTS idx_audit_actor ON policy_audit (actor, action);
+
+CREATE TABLE IF NOT EXISTS incidents (
+    id                TEXT PRIMARY KEY,
+    created_utc       TEXT NOT NULL,
+    updated_utc       TEXT NOT NULL,
+    device_id         TEXT NOT NULL,
+    severity          TEXT NOT NULL,
+    status            TEXT NOT NULL,
+    detection_ref     TEXT NOT NULL,
+    reasoning_summary TEXT,
+    decision          TEXT,
+    action            TEXT,
+    outcome           TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_incidents_status  ON incidents (status);
+CREATE INDEX IF NOT EXISTS idx_incidents_device  ON incidents (device_id);
+CREATE INDEX IF NOT EXISTS idx_incidents_created ON incidents (created_utc);
+
+CREATE TABLE IF NOT EXISTS incident_events (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_id  TEXT    NOT NULL,
+    ts_utc       TEXT    NOT NULL,
+    kind         TEXT    NOT NULL,
+    actor        TEXT    NOT NULL,
+    summary      TEXT    NOT NULL,
+    details_json TEXT,
+    FOREIGN KEY (incident_id) REFERENCES incidents (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_inc_events_inc ON incident_events (incident_id, ts_utc);
+
+CREATE TABLE IF NOT EXISTS isolations (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id    TEXT NOT NULL,
+    status       TEXT NOT NULL,
+    reason       TEXT NOT NULL,
+    actor        TEXT NOT NULL,
+    started_utc  TEXT NOT NULL,
+    expires_utc  TEXT,
+    released_utc TEXT,
+    incident_id  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_isolations_dev ON isolations (device_id, status);
 """
+
+
+def get_db_path(override: str | Path | None = None) -> Path:
+    if override is not None:
+        return Path(override)
+    env_path = os.environ.get("CERBERUS_DB_PATH")
+    if env_path:
+        return Path(env_path)
+    return DEFAULT_DB_PATH
+
+
+def write_lock() -> threading.Lock:
+    return _WRITE_LOCK
 
 
 def utc_now():

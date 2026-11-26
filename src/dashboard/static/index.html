@@ -412,6 +412,332 @@
     .tl-card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; }
     .tl-card::before { content: ""; position: absolute; left: -22px; top: 15px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
     .tl-card pre { margin-top: 8px; padding: 8px; border-radius: 6px; background: #0d0c0c; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-soft); overflow-x: auto; }
+
+    /* CERBERUS command-center refinement */
+    :root {
+      --bg:#090b0e; --sidebar:#0d1014; --surface:#10151b; --card:#131920;
+      --card-elev:#171f27; --hover:#1b252e; --border:#202a33; --border-strong:#34414c;
+      --text:#f2f5f7; --text-soft:#b6c0c8; --text-muted:#7d8a95;
+      --accent:#ff593d; --accent-hover:#ff755c; --accent-soft:rgba(255,89,61,.12);
+      --green:#40d49b; --green-soft:rgba(64,212,155,.12); --amber:#f2b45f;
+      --amber-soft:rgba(242,180,95,.12); --red:#ff626c; --red-soft:rgba(255,98,108,.12);
+    }
+    body { background:radial-gradient(ellipse 80% 32% at 62% -12%,rgba(255,89,61,.13),transparent 70%),linear-gradient(120deg,#0a0e12,#090b0e 45%); }
+    .sidebar { width:246px; padding:24px 16px 18px; gap:20px; background:rgba(12,16,20,.92); border-color:#1c252d; }
+    .brand { font-size:14px; letter-spacing:.2em; padding:3px 8px 10px; }
+    .brand::before { content:""; width:28px;height:28px;margin-right:10px;border-radius:8px;display:inline-block; background:linear-gradient(145deg,#ff7655,#a62d22); box-shadow:0 5px 18px rgba(255,89,61,.2); }
+    .brand span:first-child { margin-right:auto; }
+    .brand-dot { width:8px;height:8px; }
+    .cta-btn { border-radius:7px!important; height:38px; font-weight:600; box-shadow:0 6px 18px rgba(255,89,61,.12); }
+    .cta-split { grid-template-columns:1fr 38px; gap:6px; }
+    .nav { gap:5px; margin-top:0; }
+    .nav-item { padding:10px 12px; gap:12px; border-radius:8px; font-size:13px; }
+    .nav-item.active { background:linear-gradient(90deg,rgba(255,89,61,.14),rgba(255,89,61,.035));border-color:rgba(255,89,61,.20);box-shadow:inset 2px 0 #ff6547; }
+    .nav-item.active svg { color:#ff8a70; }
+    .sidebar-foot { padding:16px 4px 0; gap:14px; }
+    .user-card { padding:9px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.045); }
+    .avatar { width:32px;height:32px;border-radius:9px; }
+    .main { padding:28px clamp(20px,3vw,46px) 38px; gap:20px; }
+    .topbar { min-height:52px; }
+    .crumb { text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:600; }
+    .page-title { font-size:25px;letter-spacing:-.04em;font-weight:650; }
+    .btn-ghost,.select-dark,.input-dark { border-radius:8px; }
+    .btn-ghost { padding:8px 13px; }
+    .kpi-grid { gap:14px; }
+    .kpi-card,.card,.table-wrap,.inc-banner { border-radius:12px;border-color:#202a33; box-shadow:0 12px 32px rgba(0,0,0,.12); }
+    .kpi-card { padding:17px 18px; min-height:126px; background:linear-gradient(145deg,rgba(24,32,40,.94),rgba(16,21,27,.96)); position:relative;overflow:hidden; }
+    .kpi-card::after { content:"";position:absolute;inset:auto -20px -46px auto;width:118px;height:118px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.035),transparent 70%);pointer-events:none; }
+    .kpi-head { font-size:12px;font-weight:550; }
+    .kpi-delta { color:#8d9aa4; }
+    .kpi-num { font-size:31px;letter-spacing:-.045em; }
+    .kpi-sub { margin-top:8px; }
+    .dash-split { gap:16px; min-height:440px; }
+    .card { padding:19px 20px; background:linear-gradient(155deg,rgba(19,26,33,.96),rgba(14,19,24,.98)); }
+    .card-head { margin-bottom:16px; }
+    .card-title { font-size:14px;font-weight:620;letter-spacing:-.01em; }
+    .card-sub { font-size:11px; }
+    .map-stage { min-height:240px; border-radius:9px;background:radial-gradient(ellipse at 50% 48%,rgba(36,52,62,.18),transparent 68%); }
+    .bar-list { gap:13px; }
+    .bar-track { height:4px;border-radius:99px;background:#26313a;overflow:hidden; }
+    .bar-fill { height:4px;background:linear-gradient(90deg,#b63a2b,#ff7655);box-shadow:none; }
+    .bar-row { grid-template-columns:48px 1fr minmax(95px,150px); }
+    .feed { gap:8px; }
+    .feed-item { padding:11px 12px; border-radius:9px;background:rgba(255,255,255,.018); }
+    .feed-ico { border-radius:8px; }
+    .kanban { gap:14px; }
+    .k-col { border-radius:11px;background:rgba(16,21,27,.8); }
+    .k-card { border-radius:9px; }
+    .table-wrap { overflow:auto; }
+    th { background:#131a20; }
+    tbody tr:last-child td { border-bottom:0; }
+    td { padding-top:13px;padding-bottom:13px; }
+    .pill-status { text-transform:capitalize; }
+    .command-intro { display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:4px 0 2px; }
+    .command-eyebrow { color:#ff8a70;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.16em;margin-bottom:7px; }
+    .command-title { font-size:27px;line-height:1.15;letter-spacing:-.045em;font-weight:650; }
+    .command-copy { color:var(--text-muted);font-size:12.5px;margin-top:7px; }
+    .command-status { display:flex;align-items:center;gap:9px;color:#9ba8b1;font-size:11px;padding:9px 12px;border:1px solid var(--border);background:rgba(18,25,31,.7);border-radius:9px;white-space:nowrap; }
+    .command-status i { width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 12px rgba(64,212,155,.7); }
+    .command-status b { color:#dce5e9;font-weight:550; }
+    .input-dark,.select-dark { padding:8px 11px; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid #ff8a70;outline-offset:2px; }
+    @media (max-width:1000px) { .sidebar { width:215px; } .main { padding:24px 22px 32px; } }
+    @media (max-width:760px) {
+      body { display:block;overflow:auto; }
+      .sidebar { width:100%;height:auto;padding:13px 15px;display:grid;grid-template-columns:1fr auto;gap:12px;border-right:0;border-bottom:1px solid var(--border); }
+      .brand { padding:0 3px; }.cta-split { grid-column:2;grid-row:1; }.nav { grid-column:1/-1;flex-direction:row;overflow:auto;gap:5px;margin:0;padding-bottom:2px; }
+      .nav-item { flex:0 0 auto;padding:8px 10px; }.nav-item svg { width:14px;height:14px; }.sidebar-foot { display:none; }
+      .main { padding:22px 16px 30px;overflow:visible; }.command-intro { align-items:flex-start;flex-direction:column; }.command-title { font-size:24px; }.topbar { align-items:flex-start;flex-wrap:wrap; }.top-actions { flex-wrap:wrap; }
+      .kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.kpi-card { min-height:112px;padding:14px; }.kpi-num { font-size:27px; }.kpi-body svg { width:76px; }
+      .dash-split,.inc-grid { grid-template-columns:1fr; }.kanban { grid-template-columns:repeat(4,minmax(210px,1fr)); }
+      .table-wrap table { min-width:700px; }.inc-meta { gap:14px; }
+    }
+    @media (max-width:420px) { .kpi-grid { grid-template-columns:1fr; }.kpi-card { min-height:100px; }.command-status { white-space:normal; }.nav-item { font-size:11.5px; } }
+    @media (prefers-reduced-motion: no-preference) { .kpi-card,.card,.feed-item,.k-card,.nav-item,.btn-ghost { transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease; }.feed-item:hover,.k-card:hover { transform:translateY(-1px); } }
+
+
+    /* Cinematic map-first command center */
+    :root { --accent:#ff503a; --accent-hover:#ff755b; --accent-soft:rgba(255,72,53,.15); --green:#55e3ad; --amber:#ffb454; }
+    .main { gap:20px; }
+    .command-intro { padding:3px 0 2px; }
+    .command-eyebrow { color:#ff7358; }
+    .command-title { font-size:28px; }
+    .command-status { border-color:rgba(85,227,173,.2);background:rgba(14,28,26,.52); }
+    .command-status i,.stream-indicator i { animation:signalPulse 1.8s ease-in-out infinite; }
+    @keyframes signalPulse { 50% { box-shadow:0 0 0 7px rgba(85,227,173,0),0 0 20px rgba(85,227,173,.8); opacity:.7; } }
+    .threat-card { padding:18px 20px 13px; overflow:hidden; position:relative; border-color:#2a3237; background:radial-gradient(ellipse at 50% 78%,rgba(111,28,24,.12),transparent 55%),linear-gradient(150deg,#13191e,#0d1217); }
+    .threat-head { position:relative;z-index:2;margin-bottom:7px; }
+    .threat-head .card-title { font-size:15px; }
+    .map-legend { display:flex;gap:16px;color:#84929a;font-size:10px; }
+    .map-legend span { display:flex;align-items:center;gap:7px; }
+    .map-legend i { display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff543d;box-shadow:0 0 10px #ff543d; }
+    .map-legend .legend-route { width:18px;height:2px;border-radius:0;background:linear-gradient(90deg,transparent,#ff7151);box-shadow:none; }
+    .cinematic-map { height:clamp(290px,34vw,410px);min-height:280px;margin:0;overflow:hidden;position:relative;background:radial-gradient(ellipse at 51% 50%,rgba(19,46,54,.22),transparent 72%); }
+    .threat-svg { position:absolute;inset:0;width:100%;height:100%; }
+    .threat-svg .route-path { fill:none;stroke:url(#routeGlow);stroke-width:2;stroke-dasharray:6 9;filter:url(#softGlow);animation:routeFlow 2.6s linear infinite; }
+    .threat-svg .route-1,.threat-svg .route-4 { animation-delay:-1.15s; }
+    .threat-svg .route-2 { animation-delay:-1.8s; }
+    @keyframes routeFlow { to { stroke-dashoffset:-60; } }
+    .node-ring { fill:#11191e;stroke:#ff6b4c;stroke-width:1.5; }
+    .node-core { fill:#ff6045;filter:url(#softGlow); }
+    .node-pulse { fill:none;stroke:#ff553e;stroke-width:1;opacity:0;transform-box:fill-box;transform-origin:center;animation:nodePulse 2.4s ease-out infinite; }
+    .node-1 .node-pulse,.node-4 .node-pulse { animation-delay:-1.2s; }
+    @keyframes nodePulse { 0% { transform:scale(.65);opacity:.8; } 100% { transform:scale(2.5);opacity:0; } }
+    .node-label { fill:#aab6bb;font:600 9px Inter, sans-serif;letter-spacing:1.5px; }
+    .map-scan path { stroke:#ff493a;stroke-width:1;opacity:.14;filter:url(#softGlow);animation:scan 9s ease-in-out infinite alternate; }
+    @keyframes scan { from { transform:translateX(80px);opacity:.05; } to { transform:translateX(950px);opacity:.24; } }
+    .map-overlay { position:absolute;z-index:1;top:14px;display:flex;flex-direction:column;gap:4px;pointer-events:none;text-shadow:0 2px 12px #070a0d; }
+    .map-overlay-left { left:15px; }.map-overlay-right { right:15px;text-align:right; }
+    .map-overlay > span { color:#a6b2b8;font-size:9px;font-weight:700;letter-spacing:1.5px; }
+    .map-overlay strong { color:#f3f5f6;font:600 22px "JetBrains Mono",monospace; }
+    .map-overlay strong small { color:#a2adb2;font:500 10px Inter,sans-serif; }
+    .map-overlay > small,.map-caption { color:#839198;font-size:10px; }
+    .map-footnote { position:absolute;bottom:9px;left:50%;transform:translateX(-50%);z-index:1;padding:4px 8px;border-radius:5px;background:rgba(7,10,13,.68);color:#78868d;font-size:9px;white-space:nowrap; }
+    .map-bottom { display:flex;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;color:#77858d;font-size:10px; }
+    .stream-indicator { display:inline-flex;align-items:center;gap:7px;color:#82d9b6;font-size:9px;font-weight:700;letter-spacing:.12em; }
+    .stream-indicator i { width:6px;height:6px;border-radius:50%;background:#55e3ad; }
+    .map-refresh { margin-left:auto;padding:5px 9px;font-size:10px; }
+    .map-refresh span { font-size:14px;margin-left:6px;color:#ff866c; }
+    .kpi-grid { gap:11px; }
+    .kpi-card { min-height:105px;padding:13px 15px;background:linear-gradient(145deg,rgba(20,27,32,.9),rgba(13,18,23,.96)); }
+    .kpi-num { font-size:27px; }
+    .lower-grid { display:grid;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);gap:15px;align-items:stretch; }
+    .activity-card,.highlight-card { min-height:315px; }
+    .activity-card .feed { max-height:none;overflow:visible; }
+    .feed-item { min-height:61px;background:rgba(255,255,255,.018); }
+    .feed-ico.crit { color:#ff9a81;background:rgba(255,78,58,.12);border-color:rgba(255,78,58,.32); }
+    .text-link { border:0;background:none;color:#ff9279;font-size:10px;cursor:pointer;font-weight:600; }
+    .text-link span { margin-left:4px; }
+    .incident-highlights { display:flex;flex-direction:column; }
+    .highlight-item { display:flex;align-items:center;gap:11px;padding:14px 5px;border:0;border-top:1px solid rgba(255,255,255,.055);background:transparent;color:inherit;text-align:left;cursor:pointer; }
+    .highlight-item:first-child { border-top:0; }
+    .highlight-item:hover .highlight-copy strong { color:#ff9a82; }
+    .severity-mark { width:3px;height:32px;border-radius:4px;background:#ff5c44;box-shadow:0 0 12px rgba(255,73,57,.35); }
+    .severity-mark.sev-medium { background:#ffb454;box-shadow:0 0 12px rgba(255,180,84,.3); }
+    .severity-mark.sev-low { background:#55e3ad;box-shadow:none; }
+    .highlight-copy { min-width:0;flex:1;display:flex;flex-direction:column;gap:4px; }
+    .highlight-copy strong { font-size:12px;font-weight:550;color:#e8ecee; }
+    .highlight-copy small,.highlight-meta small { color:#7f8b92;font-size:10px;white-space:nowrap; }
+    .highlight-meta { display:flex;flex-direction:column;align-items:flex-end;gap:4px; }
+    .severity-label { font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#ff7861; }
+    .severity-label.medium { color:#ffc071; }.severity-label.low { color:#66dcb0; }
+    .highlight-arrow { color:#75828a;font-size:19px; }
+    .empty-feed { min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#7f8b92;text-align:center;font-size:11px; }
+    .empty-feed strong { color:#cbd3d7;font-size:12px; }.empty-feed-mark { color:#ff755b;font-size:28px; }
+    @media(max-width:850px) { .lower-grid { grid-template-columns:1fr; }.cinematic-map { height:340px; } }
+    @media(max-width:600px) { .threat-head { align-items:flex-start;gap:10px;flex-direction:column; }.map-legend { gap:10px; }.cinematic-map { height:285px; }.map-overlay { top:10px; }.map-overlay-left { left:8px; }.map-overlay-right { right:8px; }.map-overlay strong { font-size:17px; }.map-overlay > span { font-size:8px; }.map-footnote { font-size:8px; }.map-bottom { flex-wrap:wrap; }.map-bottom>span:nth-child(2) { display:none; }.command-title { font-size:24px; } }
+    @media(prefers-reduced-motion:reduce) { .command-status i,.stream-indicator i,.threat-svg .route-path,.node-pulse,.map-scan path { animation:none!important; } }
+
+
+    /* Watchfloor art direction — precise, editorial, operational */
+    :root { --bg:#080a0c;--sidebar:#0b0e10;--surface:#101417;--card:#111619;--card-elev:#141a1d;--hover:#1b2022;--border:#252b2d;--border-strong:#3c4140;--text:#f1f0ec;--text-soft:#b9b8b2;--text-muted:#777d7b;--accent:#ff513d;--accent-hover:#ff735a;--accent-soft:rgba(255,81,61,.12);--green:#77d7a8;--amber:#efb065;--red:#f26c62; }
+    body { background:radial-gradient(ellipse 55% 32% at 68% -9%,rgba(143,38,26,.12),transparent 76%),#080a0c; }
+    .sidebar { width:252px;background:linear-gradient(180deg,#0d1012 0%,#0a0c0e 100%);border-right:1px solid #24292b;padding:21px 15px 16px;gap:17px; }
+    .brand { justify-content:flex-start;padding:3px 7px 13px;border-bottom:1px solid #22282a;letter-spacing:.19em;font-size:13px; }
+    .brand::before { width:25px;height:25px;margin-right:10px;border-radius:6px;background:linear-gradient(145deg,#ff6548 0 46%,#9b2d22 47% 100%);box-shadow:0 0 20px rgba(255,74,53,.18); }
+    .brand-dot { margin-left:auto;width:7px;height:7px; }
+    .cta-split { grid-template-columns:1fr 36px;gap:5px; }
+    .cta-btn { height:36px;border-radius:5px!important;background:#e94934;box-shadow:0 6px 20px rgba(195,55,40,.12);font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.06em; }
+    .cta-btn:last-child { font-size:16px; }
+    .nav { gap:4px;margin-top:2px; }
+    .nav-item { min-height:39px;padding:9px 10px;border-radius:5px;font-size:12px;letter-spacing:.005em; }
+    .nav-item.active { background:linear-gradient(90deg,rgba(255,81,61,.11),rgba(255,81,61,.025));border:1px solid rgba(255,81,61,.20);box-shadow:inset 2px 0 #ff5a42; }
+    .nav-item.active svg { color:#ff8168; }
+    .nav-badge { border-radius:3px;background:rgba(255,81,61,.12);color:#ff9a83; }
+    .sidebar-foot { padding:13px 3px 0;gap:11px; }
+    .llm-chip { border-radius:3px;text-transform:uppercase;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.02em; }
+    .user-card { border-radius:5px;background:#101517;border:1px solid #242a2b;padding:8px; }
+    .avatar { width:29px;height:29px;border-radius:5px;background:linear-gradient(145deg,#f3654b,#7e261e); }
+    .main { padding:27px clamp(20px,3vw,44px) 34px;gap:17px; }
+    .command-intro { padding:3px 0 5px;align-items:center; }
+    .command-eyebrow { display:flex;align-items:center;gap:8px;color:#ff755e;font:600 9px "JetBrains Mono",monospace;letter-spacing:.16em;margin-bottom:7px; }
+    .command-eyebrow i { width:6px;height:6px;background:var(--accent);box-shadow:0 0 9px rgba(255,81,61,.6); }
+    .command-eyebrow span { color:#59605e; }
+    .command-title { font-size:29px;letter-spacing:-.055em;font-weight:630; }
+    .command-title span { color:#707774;font-size:.72em;font-weight:450;letter-spacing:-.03em; }
+    .command-copy { color:#8c928f;font-size:11.5px;margin-top:5px; }
+    .command-status { padding:8px 11px;border-radius:4px;border:1px solid #29322e;background:#0d1411;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.1em; }
+    .command-status b { color:#b4e3c7;font-weight:500; }
+    .command-status small { color:#718078;font-size:9px; }
+    .command-status i,.stream-indicator i { animation:opsPulse 1.8s ease-in-out infinite; }
+    @keyframes opsPulse { 0%,100%{box-shadow:0 0 0 0 rgba(119,215,168,.1)}50%{box-shadow:0 0 0 5px rgba(119,215,168,.08),0 0 12px rgba(119,215,168,.4)} }
+    .threat-card { position:relative;overflow:hidden;padding:16px 18px 11px;border-radius:6px;border:1px solid #303639;background:linear-gradient(145deg,#101619,#0c1114 70%,#111213);box-shadow:0 16px 48px rgba(0,0,0,.18); }
+    .threat-card::before { content:"";position:absolute;top:0;left:0;width:100%;height:1px;background:linear-gradient(90deg,#ff533c 0%,rgba(255,83,60,.2) 28%,transparent 72%); }
+    .threat-head { position:relative;z-index:2;align-items:flex-start;margin-bottom:1px; }
+    .map-index,.panel-index { color:#e1ded7;font:600 9px "JetBrains Mono",monospace;letter-spacing:.11em;margin-bottom:5px; }
+    .map-index span,.panel-index span { color:#ff614a; }
+    .threat-head .card-title,.card-title { font-size:15px;font-weight:590;letter-spacing:-.02em; }
+    .threat-head .card-sub,.card-sub { color:#77817f;font-size:10px;margin-top:3px; }
+    .map-legend { gap:15px;padding-top:8px;font:9px "JetBrains Mono",monospace;color:#7c8582; }
+    .map-legend i { width:6px;height:6px;background:#ff6148;box-shadow:0 0 9px #ff523b; }
+    .map-legend .legend-route { height:1px;width:17px;background:linear-gradient(90deg,transparent,#ff7755); }
+    .cinematic-map { height:clamp(280px,31vw,355px);min-height:270px;margin:0;overflow:hidden;position:relative;background:radial-gradient(ellipse at 50% 54%,rgba(25,55,60,.19),transparent 63%); }
+    .threat-svg { position:absolute;inset:0;width:100%;height:100%; }
+    .threat-svg > rect:first-of-type { opacity:.48; }
+    .threat-svg g[fill="#18242a"] { fill:#1b2526;stroke:#35403c; }
+    .threat-svg .route-path { fill:none;stroke:url(#routeGlow);stroke-width:1.55;stroke-dasharray:4 11;filter:url(#softGlow);animation:routeFlow 2.2s linear infinite; }
+    .threat-svg .route-1,.threat-svg .route-4 { animation-delay:-1.1s; }
+    @keyframes routeFlow { to { stroke-dashoffset:-60; } }
+    .node-ring { fill:#0b1011;stroke:#ff654a;stroke-width:1; }
+    .node-core { fill:#ff684b;filter:url(#softGlow); }
+    .node-pulse { fill:none;stroke:#ff5a42;stroke-width:1;opacity:0;transform-box:fill-box;transform-origin:center;animation:nodePulse 2.6s ease-out infinite; }
+    .node-1 .node-pulse,.node-4 .node-pulse { animation-delay:-1.3s; }
+    @keyframes nodePulse { 0%{transform:scale(.7);opacity:.8}100%{transform:scale(2.8);opacity:0} }
+    .node-label { fill:#aeb2a9;font:600 8px "JetBrains Mono",monospace;letter-spacing:1.2px; }
+    .map-overlay { top:13px;gap:3px;text-shadow:0 2px 10px #080a0c; }
+    .map-overlay-left { left:14px; }.map-overlay-right { right:14px; }
+    .map-overlay>span { color:#898f8b;font:600 8px "JetBrains Mono",monospace;letter-spacing:.13em; }
+    .map-overlay strong { color:#ece9e2;font:500 20px "JetBrains Mono",monospace;letter-spacing:-.05em; }
+    .map-overlay strong small { color:#949b96;font:10px Inter,sans-serif;letter-spacing:0; }
+    .map-caption,.map-overlay>small { color:#7c8480;font-size:9px; }
+    .map-footnote { bottom:7px;padding:3px 6px;background:rgba(8,10,12,.82);border-radius:2px;color:#707a76;font:8px "JetBrains Mono",monospace; }
+    .map-bottom { display:flex;align-items:center;gap:12px;padding-top:9px;border-top:1px solid #272c2d;color:#737c79;font:9px "JetBrains Mono",monospace; }
+    .stream-indicator { color:#83cba3;font:600 8px "JetBrains Mono",monospace;letter-spacing:.12em; }
+    .stream-indicator i { width:5px;height:5px;background:#77d7a8; }
+    .map-refresh { margin-left:auto;padding:5px 8px;border-radius:3px;font:9px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.04em; }
+    .map-refresh span { color:#ff826b; }
+    .kpi-grid { gap:1px;border:1px solid #252b2d;background:#252b2d; }
+    .kpi-card { position:relative;min-height:91px;padding:13px 15px;border:0;border-radius:0;background:#101517;box-shadow:none; }
+    .kpi-card::after { display:none; }
+    .kpi-head { color:#989d97;font:500 9px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.07em; }
+    .kpi-delta { color:#77827d;font:9px "JetBrains Mono",monospace; }
+    .kpi-num { color:#eceae3;font:500 25px "JetBrains Mono",monospace;letter-spacing:-.06em; }
+    .kpi-sub { margin-top:5px;color:#737d78;font-size:9px; }
+    .lower-grid { display:grid;grid-template-columns:minmax(0,1.18fr) minmax(320px,.82fr);gap:15px;align-items:stretch; }
+    .activity-card,.highlight-card { min-height:300px;padding:16px 17px;border-radius:6px;border:1px solid #252c2e;background:linear-gradient(155deg,#111719,#0d1113);box-shadow:none; }
+    .activity-card .card-head,.highlight-card .card-head { align-items:flex-start;margin-bottom:12px; }
+    .panel-index { color:#ddd9d0;font-size:8px;margin-bottom:5px; }
+    .activity-card .feed { gap:0;max-height:none;overflow:visible;padding-right:0; }
+    .activity-card .feed-item { position:relative;min-height:58px;padding:10px 5px;border:0;border-top:1px solid rgba(255,255,255,.055);border-radius:0;background:transparent;gap:11px; }
+    .activity-card .feed-item:hover { background:linear-gradient(90deg,rgba(255,255,255,.025),transparent);transform:none; }
+    .feed-ico { width:25px;height:25px;border-radius:4px;background:#171d1d;border-color:#333a38;font:600 12px "JetBrains Mono",monospace; }
+    .feed-ico.crit { color:#ff8069;background:rgba(255,81,61,.09);border-color:rgba(255,81,61,.24); }
+    .feed-main strong { font-size:11px;font-weight:550; }
+    .feed-main span { font-size:9px;color:#77817d; }
+    .feed-arrow { color:#727d78;font-size:12px; }
+    .select-dark,.btn-ghost,.input-dark { border-radius:3px;background:#111719;border-color:#343a3a;color:#c3c2bb;font-size:10px; }
+    .text-link { color:#ff8b73;font:600 9px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.04em; }
+    .incident-highlights { display:flex;flex-direction:column; }
+    .highlight-item { display:flex;align-items:center;gap:10px;min-height:59px;padding:10px 3px;border:0;border-top:1px solid rgba(255,255,255,.055);background:transparent;text-align:left;cursor:pointer; }
+    .highlight-item:first-child { border-top:1px solid rgba(255,255,255,.055); }
+    .highlight-item:hover { background:linear-gradient(90deg,rgba(255,81,61,.04),transparent); }
+    .severity-mark { width:2px;height:29px;border-radius:0;background:#ff5942;box-shadow:0 0 8px rgba(255,89,66,.3); }
+    .severity-mark.sev-medium { background:#eab06a;box-shadow:none; }.severity-mark.sev-low { background:#77d7a8;box-shadow:none; }
+    .highlight-copy strong { color:#d9d9d2;font-size:10px;font-weight:600; }
+    .highlight-copy small,.highlight-meta small { color:#727d78;font:8px "JetBrains Mono",monospace; }
+    .highlight-meta { gap:4px; }
+    .severity-label { color:#ff816a;font:600 8px "JetBrains Mono",monospace;letter-spacing:.08em; }
+    .severity-label.medium { color:#eab06a; }.severity-label.low { color:#77d7a8; }
+    .highlight-arrow { color:#69726e;font-size:16px; }
+    .empty-feed { color:#76817c;font-size:10px; }.empty-feed strong { color:#c9c9c2;font-size:11px; }
+    .page-title { font-size:26px;letter-spacing:-.045em; }
+    .topbar .crumb { color:#ff7a62;font:600 9px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase; }
+    .card,.inc-banner,.table-wrap,.k-col,.tl-card { border-radius:5px;box-shadow:none; }
+    .table-wrap { border-color:#282e30; }
+    th { color:#7e8782;background:#111719;font:600 9px "JetBrains Mono",monospace;letter-spacing:.1em; }
+    td { color:#c2c3bc;border-color:#242a2b;font-size:11px; }
+    tr.click-row:hover td { background:#151b1d; }
+    .pill-status { border-radius:3px;font:500 9px "JetBrains Mono",monospace;letter-spacing:.02em; }
+    .k-col { background:#101517;border-color:#252b2d; }.k-card { border-radius:4px;background:#141a1c; }.k-card:hover { border-color:#9b493c; }
+    .btn-ghost { padding:7px 10px; }.btn-ghost.active { background:rgba(255,81,61,.12);border-color:rgba(255,81,61,.4);color:#ffac98; }
+    .btn-danger { border-radius:3px; }
+    .subtab { border-radius:3px;font:500 10px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.04em; }
+    .subtab.active { background:#e94934;color:white; }
+    .tl-card { background:#121819;border-color:#292f30; }
+    .tl-card::before { border-radius:2px;background:#ff6249; }
+    .input-dark:focus,.select-dark:focus { border-color:#e95a43; }
+    button:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid #ff755e;outline-offset:2px; }
+    @media(max-width:1000px) { .sidebar { width:218px; }.main { padding:22px 19px 30px; }.lower-grid { grid-template-columns:minmax(0,1fr) minmax(270px,.9fr);gap:11px; } }
+    @media(max-width:760px) { body { display:block;overflow:auto; }.sidebar { width:100%;height:auto;padding:11px 13px;display:grid;grid-template-columns:1fr auto;gap:10px;border-right:0;border-bottom:1px solid #24292b; }.brand { padding:0 3px 7px;border-bottom:0; }.cta-split { grid-column:2;grid-row:1; }.nav { grid-column:1/-1;flex-direction:row;overflow:auto;gap:4px;margin:0;padding-bottom:2px; }.nav-item { flex:0 0 auto;min-height:34px;padding:7px 9px;font-size:10px; }.nav-item svg { width:13px;height:13px; }.sidebar-foot { display:none; }.main { padding:19px 13px 26px;gap:13px;overflow:visible; }.command-intro { align-items:flex-start;flex-direction:column;gap:8px; }.command-title { font-size:25px; }.command-status { align-self:flex-start; }.cinematic-map { height:290px; }.kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.kpi-card { min-height:84px;padding:11px; }.kpi-num { font-size:22px; }.kpi-body svg { width:65px; }.lower-grid { grid-template-columns:1fr; }.activity-card,.highlight-card { min-height:0; }.table-wrap { overflow:auto; }.table-wrap table { min-width:680px; }.kanban { grid-template-columns:repeat(4,minmax(205px,1fr)); }.inc-grid { grid-template-columns:1fr; } }
+    @media(max-width:420px) { .kpi-grid { grid-template-columns:1fr 1fr; }.kpi-card { padding:9px; }.kpi-head { font-size:8px; }.kpi-num { font-size:19px; }.kpi-sub { font-size:8px; }.command-title { font-size:22px; }.command-title span { display:block;margin-top:3px; }.map-legend { gap:8px;font-size:8px; }.map-overlay-left { left:7px; }.map-overlay-right { right:7px; }.map-overlay strong { font-size:16px; }.map-overlay>span { font-size:7px; }.map-footnote { max-width:75%;white-space:normal;text-align:center; }.map-bottom { flex-wrap:wrap;gap:7px; }.map-bottom>span:nth-child(2) { display:none; } }
+    @media(prefers-reduced-motion:reduce) { .command-status i,.stream-indicator i,.threat-svg .route-path,.node-pulse { animation:none!important; } }
+
+
+    /* Composition pass: canvas, instrument rail, open ledgers */
+    .main { padding-top:29px;gap:14px; }
+    .command-intro { padding:1px 0 7px; }
+    .command-title { font-size:34px; }
+    .command-copy { font-size:12px; }
+    .threat-card { padding:13px 0 0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible; }
+    .threat-card::before { display:none; }
+    .threat-head { padding:0 1px 9px; }
+    .map-index { font-size:9px;letter-spacing:.16em;color:#ff765e; }
+    .threat-head .card-title { font-size:17px; }
+    .threat-head .card-sub { font-size:10px; }
+    .cinematic-map { height:clamp(325px,34vw,420px);min-height:305px;margin:0;overflow:hidden;border-top:1px solid #262d2d;border-bottom:1px solid #262d2d;background:radial-gradient(ellipse at 50% 54%,rgba(25,55,60,.17),transparent 63%),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px);background-size:auto,56px 56px,56px 56px; }
+    .threat-svg { transform:scale(1.045); }
+    .map-overlay { top:17px; }
+    .map-overlay-left { left:18px; }.map-overlay-right { right:18px; }
+    .map-overlay strong { font-size:24px; }
+    .map-footnote { bottom:8px;font-size:8px; }
+    .map-bottom { min-height:37px;padding:8px 2px 0;border-top:0;font-size:9px; }
+    .map-refresh { background:transparent;border-color:#303637;color:#adb1aa; }
+    .kpi-grid { grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:0;border-top:1px solid #303534;border-bottom:1px solid #303534;background:transparent; }
+    .kpi-card { min-height:80px;padding:13px 16px 11px 12px;background:transparent;position:relative; }
+    .kpi-card + .kpi-card { border-left:1px solid #282e2e; }
+    .kpi-head { font-size:9px; }
+    .kpi-num { font-size:24px; }
+    .kpi-body { margin-top:7px; }
+    .kpi-body svg { opacity:.82; }
+    .lower-grid { grid-template-columns:minmax(0,1.14fr) minmax(0,.86fr);gap:0; }
+    .activity-card,.highlight-card { min-height:0;border:0;border-radius:0;background:transparent;box-shadow:none;padding:12px 19px 9px 0; }
+    .highlight-card { padding:12px 0 9px 20px;border-left:1px solid #303534; }
+    .activity-card .card-head,.highlight-card .card-head { padding-bottom:9px;margin-bottom:0;border-bottom:1px solid #303534; }
+    .activity-card .card-title,.highlight-card .card-title { font-size:16px; }
+    .panel-index { color:#ff765e;font-size:8px;letter-spacing:.15em; }
+    .activity-card .feed-item { min-height:58px;padding:10px 3px;border-top:0;border-bottom:1px solid rgba(255,255,255,.055); }
+    .activity-card .feed-item:last-child { border-bottom:0; }
+    .activity-card .feed-ico { width:22px;height:22px;border-radius:2px;font-size:11px; }
+    .feed-main strong { font-size:11.5px; }
+    .feed-main span { font-size:9.5px; }
+    .highlight-item { min-height:62px; }
+    .highlight-copy strong { font-size:11px; }
+    .highlight-copy small,.highlight-meta small { font-size:9px; }
+    .empty-feed { min-height:150px; }
+    @media(max-width:1000px) { .command-title { font-size:29px; }.lower-grid { grid-template-columns:minmax(0,1fr) minmax(0,.9fr); } }
+    @media(max-width:760px) { .main { padding-top:19px; }.command-title { font-size:27px; }.cinematic-map { height:315px; }.lower-grid { grid-template-columns:1fr; }.activity-card,.highlight-card { padding:14px 0;border:0;border-bottom:1px solid #303534; }.highlight-card { border-left:0; }.kpi-card { min-height:76px;padding:11px 9px; }.kpi-card + .kpi-card { padding-left:10px; }.kpi-num { font-size:20px; }.kpi-head { letter-spacing:0;font-size:8px; } }
+    @media(max-width:420px) { .command-title { font-size:23px; }.cinematic-map { height:265px; }.map-overlay strong { font-size:17px; }.map-overlay-left { left:8px; }.map-overlay-right { right:8px; }.map-overlay>span { font-size:7px; }.map-footnote { max-width:72%; }.kpi-card { padding:9px 5px; }.kpi-card + .kpi-card { padding-left:6px; }.kpi-num { font-size:18px; }.kpi-sub { font-size:8px; } }
+
   </style>
 </head>
 <body>
@@ -597,40 +923,33 @@
     }
 
     function worldThreatMapSvg() {
-      // Stylized dotted world continent clusters + concentric glowing hotspots mapped to lab nodes
-      const blobs = [
-        [78,62,48,26], [108,88,28,18], [136,138,24,42], [258,54,44,24],
-        [278,96,34,48], [348,58,76,34], [412,96,32,24], [448,142,36,24], [190,36,24,14]
+      // Stylized global network visualization. Node placement is illustrative because the API has no geo coordinates.
+      const nodes = [[168,146],[345,124],[505,160],[680,133],[850,180],[950,110]];
+      const paths = [[nodes[0],nodes[1]],[nodes[1],nodes[2]],[nodes[2],nodes[3]],[nodes[3],nodes[4]],[nodes[2],nodes[5]],[nodes[0],nodes[4]]];
+      const continents = [
+        'M95 119l28-21 35 4 20 15 36 7 24 23-8 19-29 2-11 21-24 7-12 37-19-10-8-36-18-20-29-8-17-20z',
+        'M207 222l24 11 18 30-7 32-15 34-14-16-5-34-13-25z',
+        'M442 119l22-17 35 6 15 17-10 17-27-1-19 10-23-11z',
+        'M480 156l32-14 43 6 30 21-9 22-28 8-12 27-19 26-20-10-8-30-24-20z',
+        'M579 123l31-15 45 7 25 17 48-7 29 20-7 17-42 4-30 21-24-7-22 19-35-8-9-24-24-13z',
+        'M685 211l25 6 17 21-6 30-23 13-19-26z',
+        'M823 156l26-15 29 6 14 19-16 12-32-3z'
       ];
-      let dots = "";
-      for (let x = 22; x < 540; x += 9) {
-        for (let y = 18; y < 210; y += 9) {
-          const hit = blobs.some(([bx, by, rx, ry]) => ((x - bx) ** 2) / (rx ** 2) + ((y - by) ** 2) / (ry ** 2) <= 1);
-          if (hit) dots += `<circle cx="${x}" cy="${y}" r="1.5" fill="#2c2725"/>`;
-        }
-      }
-      const spots = [
-        { x: 96, y: 74 }, { x: 266, y: 62 }, { x: 452, y: 146 }, { x: 142, y: 144 }, { x: 376, y: 72 }
-      ];
-      const devs = state.devices.slice(0, 5);
-      return `<svg viewBox="0 0 560 225" width="100%" height="100%">
+      const activity = state.devices.reduce((sum,d)=>sum+(Number(d.event_count)||0),0);
+      return `<svg class="threat-svg" viewBox="0 0 1100 390" role="img" aria-label="Illustrative global network activity map">
         <defs>
-          <radialGradient id="hg-hot" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ef461b" stop-opacity="0.65"/><stop offset="60%" stop-color="#ef461b" stop-opacity="0.16"/><stop offset="100%" stop-color="#ef461b" stop-opacity="0"/></radialGradient>
-          <radialGradient id="hg-ok" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e68a2e" stop-opacity="0.45"/><stop offset="65%" stop-color="#e68a2e" stop-opacity="0.1"/><stop offset="100%" stop-color="#e68a2e" stop-opacity="0"/></radialGradient>
+          <radialGradient id="mapGlow"><stop stop-color="#ff3d32" stop-opacity=".34"/><stop offset="1" stop-color="#ff3d32" stop-opacity="0"/></radialGradient>
+          <linearGradient id="routeGlow"><stop stop-color="#ff9a67" stop-opacity=".15"/><stop offset=".5" stop-color="#ff493b"/><stop offset="1" stop-color="#ffb06c" stop-opacity=".3"/></linearGradient>
+          <filter id="softGlow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <pattern id="mapGrid" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0H0V44" fill="none" stroke="#19303b" stroke-opacity=".24" stroke-width=".7"/></pattern>
         </defs>
-        ${dots}
-        ${devs.map((d, i) => {
-          const s = spots[i % spots.length];
-          const hot = d.status === "isolated" || d.status === "alerting";
-          const R = hot ? 34 : 22;
-          const col = hot ? "#ef461b" : "#e68a2e";
-          return `<g style="cursor:pointer" onclick="setView('devices')">
-            <circle cx="${s.x}" cy="${s.y}" r="${R}" fill="url(#${hot ? 'hg-hot' : 'hg-ok'})"/>
-            <circle cx="${s.x}" cy="${s.y}" r="${R * 0.52}" fill="${col}" opacity="0.22"/>
-            <circle cx="${s.x}" cy="${s.y}" r="4.5" fill="${col}"/>
-            <title>${esc(d.device_id)} (${esc(d.status)} · ${d.event_count} events)</title>
-          </g>`;
-        }).join("")}
+        <rect width="1100" height="390" fill="url(#mapGrid)"/>
+        <g fill="none" stroke="#26333b" stroke-width=".8" opacity=".72"><path d="M0 195H1100M550 0V390"/><ellipse cx="550" cy="195" rx="450" ry="150"/><ellipse cx="550" cy="195" rx="300" ry="150"/><ellipse cx="550" cy="195" rx="150" ry="150"/></g>
+        <g fill="#18242a" stroke="#2c3c43" stroke-width="1.2" opacity=".94">${continents.map(d=>`<path d="${d}"/>`).join('')}</g>
+        <g fill="#31434a" opacity=".72">${continents.map((_,i)=>`<circle cx="${140+i*129}" cy="${120+(i%3)*45}" r="2"/>`).join('')}</g>
+        <g class="route-lines">${paths.map(([a,b],i)=>{const mx=(a[0]+b[0])/2,my=Math.min(a[1],b[1])-55-(i%2)*25;return `<path class="route-path route-${i}" d="M${a[0]} ${a[1]} Q${mx} ${my} ${b[0]} ${b[1]}"/>`}).join('')}</g>
+        ${nodes.map(([x,y],i)=>`<g class="map-node node-${i}" transform="translate(${x} ${y})"><circle class="node-halo" r="31" fill="url(#mapGlow)"/><circle class="node-ring" r="12"/><circle class="node-core" r="4"/><circle class="node-pulse" r="12"/><text x="0" y="31" text-anchor="middle" class="node-label">${`NODE 0${i+1}`}</text></g>`).join('')}
+        <g class="map-scan"><path d="M0 0V390"/></g>
       </svg>`;
     }
 
@@ -672,6 +991,7 @@
       const healthyPct = Math.round(((totalDevs - (k.devices_isolated || 0)) / totalDevs) * 100);
       const activePct = Math.min(100, Math.round(((k.open_incidents || 0) / Math.max(1, state.incidents.length)) * 100));
       const maxEvents = Math.max(1, ...state.devices.map((d) => d.event_count || 0));
+      const activity = state.devices.reduce((sum, d) => sum + (Number(d.event_count) || 0), 0);
 
       let feedItems = [
         ...state.incidents.slice(0, 6).map((i) => ({
@@ -697,76 +1017,24 @@
       feedItems = feedItems.slice(0, 9);
 
       return `
-        <section class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-head"><span>MQTT events</span><span class="kpi-delta">&#8599; live</span></div>
-            <div class="kpi-body">
-              <div><div class="kpi-num">${k.total_events ?? 0}</div><div class="kpi-sub">${k.devices_total ?? 0} monitored nodes</div></div>
-              ${biWaveformSvg("#22c55e")}
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span>Active incidents</span><span class="kpi-delta">${k.mitigated_incidents ?? 0} mitigated</span></div>
-            <div class="kpi-body">
-              <div><div class="kpi-num">${k.open_incidents ?? 0}</div><div class="kpi-sub">${state.incidents.length} total recorded</div></div>
-              ${tickedRingSvg(activePct, "#e68a2e")}
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span>Fleet health</span><span class="kpi-delta">${k.devices_isolated ?? 0} isolated</span></div>
-            <div class="kpi-body">
-              <div><div class="kpi-num">${healthyPct}%</div><div class="kpi-sub">active lab coverage</div></div>
-              ${tickedArcGaugeSvg(healthyPct)}
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span>Policy blocks</span><span class="kpi-delta">PolicyGate</span></div>
-            <div class="kpi-body">
-              <div><div class="kpi-num">${k.policy_denies ?? 0}</div><div class="kpi-sub">${k.active_isolations ?? 0} active isolations</div></div>
-              ${biWaveformSvg("#e68a2e")}
-            </div>
-          </div>
+        <section class="command-intro">
+          <div><div class="command-eyebrow"><i></i> SECURITY OPERATIONS <span>/</span> WATCHFLOOR 01</div><h1 class="command-title">Threat watch<span> / global overview</span></h1><p class="command-copy">Live telemetry, incident triage, and response posture across the monitored fleet.</p></div>
+          <div class="command-status"><i></i><span><b>LIVE FEED</b><small> · telemetry stream</small></span></div>
         </section>
-
-        <section class="dash-split">
-          <div class="card">
-            <div class="card-head">
-              <div class="card-title">Threat map</div>
-              <span class="card-sub">Live Fleet</span>
-            </div>
-            <div class="map-stage">${worldThreatMapSvg()}</div>
-            <div class="bar-list">
-              ${state.devices.slice(0, 6).map((d) => `
-                <div class="bar-row">
-                  <span class="bar-val">${d.event_count}</span>
-                  <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, Math.round((d.event_count / maxEvents) * 100))}%"></div></div>
-                  <span class="bar-label">${esc(d.device_id)}, ${esc(d.room)}</span>
-                </div>
-              `).join("")}
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-head">
-              <div class="card-title">Recent activity</div>
-              <select class="select-dark" style="padding:3px 8px;font-size:11px" onchange="feedSort=this.value;render()">
-                <option value="latest" ${feedSort==='latest'?'selected':''}>Sort by: Latest</option>
-                <option value="critical" ${feedSort==='critical'?'selected':''}>Sort by: Critical</option>
-              </select>
-            </div>
-            <div class="feed">
-              ${feedItems.length ? feedItems.map((f) => `
-                <div class="feed-item" ${f.id ? `onclick="openIncidentDetail('${esc(f.id)}')"` : `onclick="setView('audit')"`}>
-                  <div class="feed-ico ${f.crit ? 'crit' : ''}">${f.crit ? '!' : '&bull;'}</div>
-                  <div class="feed-main">
-                    <strong>${esc(f.title)}</strong>
-                    <span>${esc(f.sub)}</span>
-                  </div>
-                  <span class="feed-arrow">&#8599;</span>
-                </div>
-              `).join("") : `<div style="color:var(--text-muted);padding:24px;text-align:center">No recent activity yet.</div>`}
-            </div>
-          </div>
+        <section class="card threat-card">
+          <div class="card-head threat-head"><div><div class="map-index">01 <span>/</span> NETWORK SURFACE</div><div class="card-title">Threat activity</div><div class="card-sub">Fleet topology · live event paths</div></div><div class="map-legend"><span><i class="legend-hot"></i> Active signal</span><span><i class="legend-route"></i> Traffic path</span></div></div>
+          <div class="map-stage cinematic-map">${worldThreatMapSvg()}<div class="map-overlay map-overlay-left"><span class="map-overline">LIVE NETWORK</span><strong>${k.devices_total ?? state.devices.length} <small>nodes monitored</small></strong><span class="map-caption">${k.open_incidents ?? 0} priority signals · ${k.devices_isolated ?? 0} isolated</span></div><div class="map-overlay map-overlay-right"><span>GLOBAL EVENT VOLUME</span><strong>${k.total_events ?? 0}</strong><small>${activity.toLocaleString()} events across listed nodes</small></div><div class="map-footnote">Illustrative topology · node positions are not geographic attribution</div></div>
+          <div class="map-bottom"><span class="stream-indicator"><i></i> STREAM ACTIVE</span><span>${state.devices.length} endpoints · ${k.total_events ?? 0} events observed</span><button class="btn-ghost map-refresh" onclick="refreshAll()">Refresh telemetry <span>↻</span></button></div>
+        </section>
+        <section class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-head"><span>MQTT events</span><span class="kpi-delta">↗ live</span></div><div class="kpi-body"><div><div class="kpi-num">${k.total_events ?? 0}</div><div class="kpi-sub">${k.devices_total ?? 0} monitored nodes</div></div>${biWaveformSvg("#40d49b")}</div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Active incidents</span><span class="kpi-delta">${k.mitigated_incidents ?? 0} mitigated</span></div><div class="kpi-body"><div><div class="kpi-num">${k.open_incidents ?? 0}</div><div class="kpi-sub">${state.incidents.length} total recorded</div></div>${tickedRingSvg(activePct, "#f2b45f")}</div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Fleet health</span><span class="kpi-delta">${k.devices_isolated ?? 0} isolated</span></div><div class="kpi-body"><div><div class="kpi-num">${healthyPct}%</div><div class="kpi-sub">active lab coverage</div></div>${tickedArcGaugeSvg(healthyPct)}</div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Policy blocks</span><span class="kpi-delta">PolicyGate</span></div><div class="kpi-body"><div><div class="kpi-num">${k.policy_denies ?? 0}</div><div class="kpi-sub">${k.active_isolations ?? 0} active isolations</div></div>${biWaveformSvg("#f2b45f")}</div></div>
+        </section>
+        <section class="lower-grid">
+          <div class="card activity-card"><div class="card-head"><div><div class="panel-index">02 <span>/</span> EVENT STREAM</div><div class="card-title">Recent activity</div><div class="card-sub">Chronological signals from policy and detection</div></div><select class="select-dark" style="padding:6px 9px;font-size:11px" onchange="feedSort=this.value;render()"><option value="latest" ${feedSort==='latest'?'selected':''}>Latest first</option><option value="critical" ${feedSort==='critical'?'selected':''}>Critical first</option></select></div><div class="feed">${feedItems.length ? feedItems.map((f) => `<div class="feed-item" ${f.id ? `onclick="openIncidentDetail('${esc(f.id)}')"` : `onclick="setView('audit')"`}><div class="feed-ico ${f.crit ? 'crit' : ''}">${f.crit ? '!' : '&bull;'}</div><div class="feed-main"><strong>${esc(f.title)}</strong><span>${esc(f.sub)}</span></div><span class="feed-arrow">↗</span></div>`).join("") : `<div class="empty-feed"><span class="empty-feed-mark">◌</span><strong>No activity yet</strong><span>Events will appear here as telemetry arrives.</span></div>`}</div></div>
+          <div class="card highlight-card"><div class="card-head"><div><div class="panel-index">03 <span>/</span> RESPONSE QUEUE</div><div class="card-title">Priority incidents</div><div class="card-sub">Highest-severity items requiring attention</div></div><button class="text-link" onclick="setView('findings')">All findings <span>↗</span></button></div><div class="incident-highlights">${state.incidents.slice().sort((a,b)=>({critical:0,high:1,medium:2,low:3}[a.severity]??4)-({critical:0,high:1,medium:2,low:3}[b.severity]??4)).slice(0,4).map(i=>`<button class="highlight-item" onclick="openIncidentDetail('${esc(i.id)}')"><span class="severity-mark sev-${esc(i.severity)}"></span><span class="highlight-copy"><strong>${esc(i.device_id)}</strong><small>${esc(i.id)} · ${esc(i.decision || i.detection_ref || 'Finding')}</small></span><span class="highlight-meta"><b class="severity-label ${esc(i.severity)}">${esc(i.severity)}</b><small>${esc(relTime(i.updated_utc))}</small></span><span class="highlight-arrow">›</span></button>`).join('') || `<div class="empty-feed"><span class="empty-feed-mark">✓</span><strong>All clear</strong><span>No incident highlights right now.</span></div>`}</div></div>
         </section>
       `;
     }

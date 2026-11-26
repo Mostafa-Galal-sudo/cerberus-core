@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -101,14 +102,15 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     incidents_store = IncidentStore(conn)
     registry = IsolationRegistry(conn)
 
-    app = FastAPI(title="Cerberus-Core SOC Dashboard", version="0.3.0")
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        yield
+        conn.close()
+
+    app = FastAPI(title="Cerberus-Core SOC Dashboard", version="0.3.0", lifespan=lifespan)
     app.state.db_path = resolved_db
     app.state.conn = conn
     app.state.gate = gate
-
-    @app.on_event("shutdown")
-    def _shutdown() -> None:
-        conn.close()
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> HTMLResponse:

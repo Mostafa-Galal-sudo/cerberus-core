@@ -86,7 +86,7 @@ Dataset paths stay git-ignored; this report is versioned.
 
 ### Head-to-head scorecard
 
-| Metric | 🥇 Best | 🥈 Runner-up | 🥉 Third | Worst |
+| Metric | Best | Runner-up | Third | Worst |
 |---|---|---|---|---|
 | **F1** | `rules` 0.958 | `hybrid` 0.956 | `baseline` 0.926 | `rules_strict` 0.439 |
 | **Recall** | `hybrid` 0.957 | `rules` 0.955 | `baseline` 0.867 | `rules_strict` 0.282 |
@@ -102,11 +102,11 @@ Dataset paths stay git-ignored; this report is versioned.
 
 | Model | Verdict | Best for | Watch out for |
 |---|---|---|---|
-| **`rules`** | ✅ **Best overall F1 & accuracy** | High-volume flooding attacks (DDoS, DoS, Mirai); when you need a fast, explainable decision with a simple reason list | Low-and-slow attacks (BruteForce, Recon, Web, Spoofing) where per-window features don't cross thresholds; not self-adapting |
-| **`rules_strict`** | 🎯 **Best precision & lowest FPR** | Zero-tolerance deployments where every false positive has a high cost (e.g., auto-blocking critical infrastructure devices) | Catastrophic recall (28.2%) — misses 72% of all attacks; useless as a primary detector; pair only as a high-confidence escalation tier |
-| **`iforest`** | ⚠️ **Weakest anomaly model here** | Catching Spoofing (best recall 7.3%) and Mirai (92%) in unsupervised settings where no rules are available | Lowest recall (44.0%) among usable detectors; most sensitive to which benign capture it was trained on; needs re-fitting when traffic baseline drifts |
-| **`baseline`** | 🏆 **Best precision-recall trade-off** | Quiet-precision deployments: high recall (86.7%) at a tiny 0.5% FPR; best Mirai/DoS coverage among anomaly-only models | Misses Spoofing almost entirely (0.5% recall) and Web attacks (0.8%); doesn't catch what the global distribution doesn't see |
-| **`hybrid`** | ⚡ **Best recall; recommended for production** | End-to-end pipeline: rules fast-path catches flooding, deviation baseline catches quiet anomalies, fingerprint handles per-device drift, severity tier guides analyst triage | Highest FPR (4.1%) — the union of two detectors means more false positives; requires the full feature pipeline and training data for all three sub-models |
+| **`rules`** | **Best overall F1 & accuracy** | High-volume flooding attacks (DDoS, DoS, Mirai); when you need a fast, explainable decision with a simple reason list | Low-and-slow attacks (BruteForce, Recon, Web, Spoofing) where per-window features don't cross thresholds; not self-adapting |
+| **`rules_strict`** | **Best precision & lowest FPR** | Zero-tolerance deployments where every false positive has a high cost (e.g., auto-blocking critical infrastructure devices) | Catastrophic recall (28.2%) — misses 72% of all attacks; useless as a primary detector; pair only as a high-confidence escalation tier |
+| **`iforest`** | **Weakest anomaly model here** | Catching Spoofing (best recall 7.3%) and Mirai (92%) in unsupervised settings where no rules are available | Lowest recall (44.0%) among usable detectors; most sensitive to which benign capture it was trained on; needs re-fitting when traffic baseline drifts |
+| **`baseline`** | **Best precision-recall trade-off** | Quiet-precision deployments: high recall (86.7%) at a tiny 0.5% FPR; best Mirai/DoS coverage among anomaly-only models | Misses Spoofing almost entirely (0.5% recall) and Web attacks (0.8%); doesn't catch what the global distribution doesn't see |
+| **`hybrid`** | **Best recall; recommended for production** | End-to-end pipeline: rules fast-path catches flooding, deviation baseline catches quiet anomalies, fingerprint handles per-device drift, severity tier guides analyst triage | Highest FPR (4.1%) — the union of two detectors means more false positives; requires the full feature pipeline and training data for all three sub-models |
 
 ### Category-level gaps (all models struggle here)
 

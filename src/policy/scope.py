@@ -30,12 +30,12 @@ class ScopePolicy:
             self.allow_rogue_isolation
             and actor in {"defense", "response", "operator"}
             and action in {"isolate_device", "release_device", "open_incident", "log_alert"}
-            and cleaned.startswith("rogue_")
+            and cleaned.startswith(("rogue_", "esp32_rogue_"))
         ):
             return True, "rogue device within defense scope"
 
-        # Attack agent may spawn a simulated rogue device only with rogue_ prefix
-        if actor == "attack" and action == "attack_rogue" and cleaned.startswith("rogue_"):
+        # Attack agent may spawn a simulated rogue device only with rogue prefix
+        if actor == "attack" and action == "attack_rogue" and cleaned.startswith(("rogue_", "esp32_rogue_")):
             return True, "simulated rogue target within attack scope"
 
         return False, f"target {target!r} is outside allowed lab scope"

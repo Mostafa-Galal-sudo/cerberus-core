@@ -9,24 +9,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0b0a0a;
-      --sidebar: #111010;
-      --surface: #141212;
-      --card: #181616;
-      --card-2: #1d1a1a;
-      --hover: #221e1d;
-      --border: #262221;
-      --border-strong: #352f2d;
-      --text: #f4f1ef;
-      --text-soft: #b8b0ac;
-      --text-muted: #78706c;
-      --accent: #f04419;
-      --accent-hover: #ff5529;
-      --accent-soft: rgba(240, 68, 25, 0.14);
+      --bg: #0a0909;
+      --sidebar: #100f0f;
+      --surface: #131111;
+      --card: #171515;
+      --card-elev: #1b1817;
+      --hover: #211d1c;
+      --border: #24201f;
+      --border-strong: #332d2b;
+      --text: #f3efed;
+      --text-soft: #b6aeaa;
+      --text-muted: #766e6a;
+      --accent: #ef461b;
+      --accent-hover: #ff582d;
+      --accent-soft: rgba(239, 70, 27, 0.14);
       --green: #22c55e;
       --green-soft: rgba(34, 197, 94, 0.14);
-      --amber: #f59e0b;
-      --amber-soft: rgba(245, 158, 11, 0.14);
+      --amber: #e68a2e;
+      --amber-soft: rgba(230, 138, 46, 0.14);
       --red: #ef4444;
       --red-soft: rgba(239, 68, 68, 0.16);
     }
@@ -35,7 +35,7 @@
     html, body { height: 100%; }
     body {
       background:
-        radial-gradient(ellipse 75% 28% at 55% -6%, rgba(196, 55, 18, 0.28), transparent 70%),
+        radial-gradient(ellipse 85% 32% at 58% -8%, rgba(204, 62, 22, 0.34), rgba(110, 30, 10, 0.12) 48%, transparent 74%),
         var(--bg);
       color: var(--text);
       font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -47,23 +47,23 @@
 
     /* Sidebar */
     .sidebar {
-      width: 224px;
+      width: 220px;
       flex-shrink: 0;
-      background: rgba(16, 15, 15, 0.92);
+      background: linear-gradient(180deg, rgba(22, 16, 15, 0.72), rgba(14, 13, 13, 0.96) 28%);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      padding: 18px 14px;
+      padding: 20px 14px 16px;
       gap: 16px;
     }
     .brand {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 4px 6px;
+      padding: 2px 6px;
       font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.24em;
       color: var(--text);
     }
     .brand-dot {
@@ -84,7 +84,7 @@
       border: none;
       height: 34px;
       font-size: 12.5px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -95,7 +95,7 @@
     .cta-btn:last-child { border-radius: 0 7px 7px 0; font-size: 16px; }
     .cta-btn:hover { background: var(--accent-hover); }
 
-    .nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .nav { display: flex; flex-direction: column; gap: 3px; flex: 1; margin-top: 4px; }
     .nav-item {
       display: flex;
       align-items: center;
@@ -106,26 +106,26 @@
       background: transparent;
       border: 1px solid transparent;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 500;
       text-align: left;
       transition: all 0.14s ease;
     }
-    .nav-item svg { width: 15px; height: 15px; opacity: 0.8; flex-shrink: 0; }
+    .nav-item svg { width: 15px; height: 15px; opacity: 0.78; flex-shrink: 0; }
     .nav-item:hover { color: var(--text-soft); background: rgba(255, 255, 255, 0.03); }
     .nav-item.active {
       color: var(--text);
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02));
       border-color: var(--border-strong);
     }
-    .nav-item.active svg { color: var(--accent); opacity: 1; }
+    .nav-item.active svg { color: var(--text); opacity: 1; }
     .nav-badge {
       margin-left: auto;
-      font-size: 11px;
+      font-size: 10.5px;
       padding: 1px 6px;
       border-radius: 999px;
       background: var(--accent-soft);
-      color: #ff8566;
+      color: #ff8e70;
       font-weight: 600;
     }
 
@@ -136,19 +136,14 @@
       flex-direction: column;
       gap: 10px;
     }
-    .llm-row {
-      display: flex;
-      gap: 6px;
-      padding: 0 4px;
-      flex-wrap: wrap;
-    }
+    .llm-row { display: flex; gap: 6px; flex-wrap: wrap; }
     .llm-chip {
       font-size: 10.5px;
       padding: 2px 7px;
       border-radius: 5px;
       border: 1px solid var(--border-strong);
       background: var(--card);
-      color: var(--text-soft);
+      color: var(--text-muted);
     }
     .llm-chip.live { border-color: rgba(34, 197, 94, 0.45); color: #86efac; }
     .user-card {
@@ -157,7 +152,7 @@
       gap: 10px;
       padding: 6px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.025);
     }
     .avatar {
       width: 28px;
@@ -167,7 +162,7 @@
       display: grid;
       place-items: center;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
     }
     .user-meta strong { display: block; font-size: 12px; font-weight: 600; }
     .user-meta span { font-size: 11px; color: var(--text-muted); }
@@ -176,10 +171,10 @@
     .main {
       flex: 1;
       overflow-y: auto;
-      padding: 20px 28px 36px;
+      padding: 18px 24px 28px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
     }
 
     .topbar {
@@ -188,16 +183,10 @@
       justify-content: space-between;
       gap: 14px;
     }
-    .crumb {
-      font-size: 12px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
-    }
-    .page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+    .crumb { font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .page-title { font-size: 21px; font-weight: 600; letter-spacing: -0.015em; }
     .top-actions { display: flex; align-items: center; gap: 8px; }
+
     .btn-ghost {
       background: var(--card);
       color: var(--text-soft);
@@ -207,16 +196,13 @@
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
     .btn-ghost:hover { background: var(--hover); color: var(--text); }
     .btn-ghost.active { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
     .btn-danger {
       background: var(--accent-soft);
       color: #ff8e72;
-      border: 1px solid rgba(240, 68, 25, 0.45);
+      border: 1px solid rgba(239, 70, 27, 0.45);
       border-radius: 6px;
       padding: 4px 10px;
       font-size: 11.5px;
@@ -231,34 +217,35 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
     }
-    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1120px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
     .kpi-card {
-      background: linear-gradient(180deg, rgba(28, 25, 25, 0.92), rgba(20, 18, 18, 0.96));
+      background: linear-gradient(180deg, rgba(29, 24, 23, 0.86), rgba(19, 17, 17, 0.94));
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 14px 16px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 112px;
+      min-height: 110px;
     }
-    .kpi-head { display: flex; align-items: center; justify-content: space-between; color: var(--text-soft); font-size: 12px; }
+    .kpi-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-soft); }
     .kpi-delta { font-size: 11px; color: var(--text-muted); }
     .kpi-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: 10px; }
-    .kpi-num { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; }
-    .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .kpi-num { font-size: 27px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
 
     /* Dashboard 2-col */
     .dash-split {
       display: grid;
-      grid-template-columns: 1.35fr 1fr;
+      grid-template-columns: 1.32fr 1fr;
       gap: 14px;
-      min-height: 430px;
+      flex: 1;
+      min-height: 460px;
     }
     @media (max-width: 1150px) { .dash-split { grid-template-columns: 1fr; } }
 
     .card {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(21, 19, 19, 0.92), rgba(16, 15, 15, 0.96));
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 16px 18px;
@@ -271,58 +258,64 @@
       justify-content: space-between;
       margin-bottom: 12px;
     }
-    .card-title { font-size: 14px; font-weight: 600; }
+    .card-title { font-size: 14px; font-weight: 500; color: var(--text); }
     .card-sub { font-size: 11.5px; color: var(--text-muted); }
 
     /* Threat Map */
     .map-stage {
       position: relative;
       flex: 1;
-      min-height: 220px;
-      border-radius: 8px;
-      background:
-        radial-gradient(circle at 50% 45%, rgba(240, 68, 25, 0.06), transparent 68%),
-        radial-gradient(#272220 1px, transparent 1px);
-      background-size: 100% 100%, 16px 16px;
-      border: 1px solid var(--border);
+      min-height: 235px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
       overflow: hidden;
-      margin-bottom: 14px;
     }
-    .bar-list { display: flex; flex-direction: column; gap: 9px; }
-    .bar-row { display: grid; grid-template-columns: 44px 1fr 125px; align-items: center; gap: 10px; font-size: 11.5px; }
-    .bar-val { font-family: "JetBrains Mono", monospace; color: var(--text-soft); }
-    .bar-track { height: 4px; background: #24201f; border-radius: 999px; overflow: hidden; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, #b92b0c, var(--accent)); border-radius: 999px; }
-    .bar-label { text-align: right; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-list { display: flex; flex-direction: column; gap: 11px; padding-top: 4px; }
+    .bar-row { display: grid; grid-template-columns: 42px 1fr 135px; align-items: center; gap: 12px; font-size: 11.5px; }
+    .bar-val { font-family: "JetBrains Mono", monospace; color: var(--text); font-size: 11.5px; }
+    .bar-track {
+      height: 3px;
+      background: repeating-linear-gradient(90deg, #332c2a 0 2px, transparent 2px 6px);
+      position: relative;
+    }
+    .bar-fill {
+      height: 3px;
+      background: linear-gradient(90deg, #b82909, var(--accent));
+      border-radius: 999px;
+      box-shadow: 0 0 8px rgba(239, 70, 27, 0.45);
+    }
+    .bar-label { text-align: right; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
 
     /* Activity Feed */
-    .feed { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 410px; }
+    .feed { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; max-height: 440px; padding-right: 2px; }
     .feed-item {
       display: flex;
       align-items: center;
       gap: 12px;
       padding: 10px 12px;
       border-radius: 8px;
-      background: var(--card);
+      background: rgba(25, 22, 22, 0.88);
       border: 1px solid var(--border);
       cursor: pointer;
       transition: border-color 0.14s ease, background 0.14s ease;
     }
     .feed-item:hover { border-color: var(--border-strong); background: var(--hover); }
     .feed-ico {
-      width: 30px;
-      height: 30px;
-      border-radius: 7px;
-      background: #211d1c;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #1f1b1a;
       border: 1px solid var(--border-strong);
       display: grid;
       place-items: center;
       color: var(--text-soft);
       flex-shrink: 0;
     }
-    .feed-ico.crit { color: #ff7a5c; border-color: rgba(240, 68, 25, 0.4); background: var(--accent-soft); }
+    .feed-ico.crit { color: #ff7a5c; border-color: rgba(239, 70, 27, 0.45); background: var(--accent-soft); }
     .feed-main { flex: 1; min-width: 0; }
-    .feed-main strong { display: block; font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feed-main strong { display: block; font-size: 12.5px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .feed-main span { font-size: 11px; color: var(--text-muted); }
     .feed-arrow { color: var(--text-muted); font-size: 13px; }
 
@@ -340,14 +333,9 @@
     .input-dark:focus, .select-dark:focus { border-color: var(--accent); }
 
     /* Kanban */
-    .kanban {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(220px, 1fr));
-      gap: 12px;
-      overflow-x: auto;
-    }
+    .kanban { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; }
     .k-col {
-      background: rgba(20, 18, 18, 0.72);
+      background: rgba(19, 17, 17, 0.78);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 10px;
@@ -356,17 +344,9 @@
       gap: 8px;
       min-height: 360px;
     }
-    .k-col-head {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 4px 4px 8px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text-soft);
-    }
+    .k-col-head { display: flex; align-items: center; gap: 7px; padding: 4px 4px 8px; font-size: 12.5px; font-weight: 600; color: var(--text-soft); }
     .k-card {
-      background: var(--card);
+      background: var(--card-elev);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 11px 12px;
@@ -378,92 +358,46 @@
     .k-id { font-family: "JetBrains Mono", monospace; font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .k-asset { font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; }
     .k-foot { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
-    .assignee {
-      width: 22px; height: 22px; border-radius: 5px;
-      background: var(--accent); color: #fff;
-      font-size: 10px; font-weight: 700; display: grid; place-items: center;
-    }
+    .assignee { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
 
     /* Tables */
-    .table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
     table { width: 100%; border-collapse: collapse; }
     th {
-      text-align: left;
-      padding: 10px 16px;
-      font-size: 10.5px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.015);
+      text-align: left; padding: 10px 16px; font-size: 10.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.015);
     }
-    td {
-      padding: 11px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-soft);
-      font-size: 12.5px;
-    }
+    td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: var(--text-soft); font-size: 12.5px; }
     tr.click-row { cursor: pointer; }
     tr.click-row:hover td { background: var(--hover); }
     code { font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--text); }
 
     .sev-dot { width: 7px; height: 7px; border-radius: 2px; display: inline-block; margin-right: 6px; }
-    .sev-critical .sev-dot, .dot-critical { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-    .sev-high .sev-dot, .dot-high { background: var(--accent); }
-    .sev-medium .sev-dot, .dot-medium { background: var(--amber); }
-    .sev-low .sev-dot, .dot-low { background: var(--green); }
+    .sev-critical .sev-dot { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    .sev-high .sev-dot { background: var(--accent); }
+    .sev-medium .sev-dot { background: var(--amber); }
+    .sev-low .sev-dot { background: var(--green); }
 
     .pill-status {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px;
+      border-radius: 999px; font-size: 11px; font-weight: 500;
       border: 1px solid var(--border-strong); background: var(--card);
     }
     .pill-status.isolated, .pill-status.DENY { border-color: rgba(239, 68, 68, 0.45); color: #fca5a5; background: var(--red-soft); }
     .pill-status.healthy, .pill-status.mitigated, .pill-status.resolved, .pill-status.ALLOW { border-color: rgba(34, 197, 94, 0.45); color: #86efac; background: var(--green-soft); }
-    .pill-status.alerting, .pill-status.open, .pill-status.investigating { border-color: rgba(245, 158, 11, 0.45); color: #fcd34d; background: var(--amber-soft); }
+    .pill-status.alerting, .pill-status.open, .pill-status.investigating { border-color: rgba(230, 138, 46, 0.45); color: #fcd34d; background: var(--amber-soft); }
 
-    /* Incident Details View */
-    .inc-banner {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px 20px;
-    }
-    .inc-banner-top {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-    }
+    /* Incident Details */
+    .inc-banner { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+    .inc-banner-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
     .inc-meta { display: flex; flex-wrap: wrap; gap: 24px; }
     .inc-meta label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
     .inc-meta span { font-size: 12.5px; color: var(--text); font-weight: 500; }
     .subtabs { display: flex; gap: 6px; padding-top: 12px; flex-wrap: wrap; }
-    .subtab {
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-    }
-    .subtab.active { background: var(--text); color: #0b0a0a; font-weight: 600; }
-    .inc-grid {
-      display: grid;
-      grid-template-columns: 0.9fr 1.35fr;
-      gap: 14px;
-    }
+    .subtab { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); background: transparent; border: none; }
+    .subtab.active { background: var(--text); color: #0a0909; font-weight: 600; }
+    .inc-grid { display: grid; grid-template-columns: 0.9fr 1.35fr; gap: 14px; }
     @media (max-width: 1050px) { .inc-grid { grid-template-columns: 1fr; } }
     .kv-list { display: flex; flex-direction: column; gap: 10px; }
     .kv-row { display: flex; justify-content: space-between; font-size: 12.5px; padding-bottom: 7px; border-bottom: 1px solid rgba(255,255,255,0.04); }
@@ -476,14 +410,8 @@
     }
     .tl-list { display: flex; flex-direction: column; gap: 10px; border-left: 2px solid var(--border-strong); padding-left: 16px; }
     .tl-card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; }
-    .tl-card::before {
-      content: ""; position: absolute; left: -22px; top: 15px;
-      width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg);
-    }
-    .tl-card pre {
-      margin-top: 8px; padding: 8px; border-radius: 6px; background: #0e0d0d;
-      font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-soft); overflow-x: auto;
-    }
+    .tl-card::before { content: ""; position: absolute; left: -22px; top: 15px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+    .tl-card pre { margin-top: 8px; padding: 8px; border-radius: 6px; background: #0d0c0c; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-soft); overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -549,6 +477,7 @@
     let selectedIncidentId = null;
     let incidentTab = "overview";
     let filters = { q: "", severity: "" };
+    let feedSort = "latest";
 
     let state = {
       health: { llm_mode: { groq: "fallback", deepseek: "fallback" } },
@@ -560,6 +489,18 @@
     };
 
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    function relTime(iso) {
+      if (!iso) return "just now";
+      const sec = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 1000));
+      if (Number.isNaN(sec)) return String(iso).slice(0, 16);
+      if (sec < 60) return `${sec}s ago`;
+      const min = Math.floor(sec / 60);
+      if (min < 60) return `${min}m ago`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24) return `${hr}h ago`;
+      return `${Math.floor(hr / 24)}d ago`;
+    }
 
     async function loadHealth() {
       const h = await fetch("/api/health").then((r) => r.json());
@@ -629,56 +570,65 @@
       a.click();
     }
 
-    function sparkBarsSvg(color = "#22c55e") {
-      const heights = [10, 14, 9, 18, 22, 15, 25, 20, 27, 19, 24, 16, 28, 21];
-      return `<svg width="96" height="32" viewBox="0 0 96 32">${heights.map((h, i) =>
-        `<rect x="${i * 7}" y="${32 - h}" width="3.5" height="${h}" rx="1.5" fill="${color}" opacity="${0.45 + (i / 25)}" />`
-      ).join("")}</svg>`;
+    function biWaveformSvg(color = "#22c55e") {
+      const vals = [7, 11, 6, 13, 9, 15, 11, 16, 12, 8, 14, 10, 15, 9, 12];
+      return `<svg width="106" height="36" viewBox="0 0 106 36">
+        <line x1="0" y1="18" x2="106" y2="18" stroke="#2c2624" stroke-width="1"/>
+        ${vals.map((v, i) => `<rect x="${i * 7 + 1}" y="${18 - v}" width="3" height="${v * 2}" rx="1.5" fill="${color}" opacity="${0.55 + (i % 3) * 0.15}"/>`).join("")}
+      </svg>`;
     }
 
-    function ringGaugeSvg(pct = 40, color = "#f59e0b") {
-      const r = 14, c = 2 * Math.PI * r;
+    function tickedRingSvg(pct = 40, color = "#e68a2e") {
+      const r = 16, c = 2 * Math.PI * r;
       const dash = (Math.max(0, Math.min(100, pct)) / 100) * c;
-      return `<svg width="42" height="42" viewBox="0 0 42 42">
-        <circle cx="21" cy="21" r="${r}" fill="none" stroke="#282321" stroke-width="4"/>
-        <circle cx="21" cy="21" r="${r}" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="${dash} ${c}" stroke-linecap="round" transform="rotate(-90 21 21)"/>
-        <text x="21" y="24" text-anchor="middle" fill="#f4f1ef" font-size="9" font-weight="600">${Math.round(pct)}%</text>
+      return `<svg width="46" height="46" viewBox="0 0 46 46">
+        <circle cx="23" cy="23" r="20" fill="none" stroke="#302927" stroke-width="2" stroke-dasharray="1.5 3"/>
+        <circle cx="23" cy="23" r="${r}" fill="none" stroke="#26211f" stroke-width="3.5"/>
+        <circle cx="23" cy="23" r="${r}" fill="none" stroke="${color}" stroke-width="3.5" stroke-dasharray="${dash} ${c}" stroke-linecap="round" transform="rotate(-90 23 23)"/>
+        <text x="23" y="26" text-anchor="middle" fill="#f3efed" font-size="9.5" font-weight="600">${Math.round(pct)}%</text>
       </svg>`;
     }
 
-    function arcGaugeSvg(pct = 80) {
-      return `<svg width="74" height="38" viewBox="0 0 74 38">
-        <path d="M 8 34 A 28 28 0 0 1 66 34" fill="none" stroke="#282321" stroke-width="5" stroke-linecap="round"/>
-        <path d="M 8 34 A 28 28 0 0 1 66 34" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(pct / 100) * 91} 91"/>
+    function tickedArcGaugeSvg(pct = 80) {
+      return `<svg width="82" height="42" viewBox="0 0 82 42">
+        <path d="M 8 36 A 32 32 0 0 1 74 36" fill="none" stroke="#2e2826" stroke-width="5" stroke-dasharray="2 3"/>
+        <path d="M 8 36 A 32 32 0 0 1 74 36" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="${(pct / 100) * 101} 101"/>
       </svg>`;
     }
 
-    function threatMapSvg() {
-      const coords = [
-        { x: 110, y: 78 },
-        { x: 245, y: 66 },
-        { x: 380, y: 128 },
-        { x: 185, y: 158 },
-        { x: 470, y: 82 },
+    function worldThreatMapSvg() {
+      // Stylized dotted world continent clusters + concentric glowing hotspots mapped to lab nodes
+      const blobs = [
+        [78,62,48,26], [108,88,28,18], [136,138,24,42], [258,54,44,24],
+        [278,96,34,48], [348,58,76,34], [412,96,32,24], [448,142,36,24], [190,36,24,14]
+      ];
+      let dots = "";
+      for (let x = 22; x < 540; x += 9) {
+        for (let y = 18; y < 210; y += 9) {
+          const hit = blobs.some(([bx, by, rx, ry]) => ((x - bx) ** 2) / (rx ** 2) + ((y - by) ** 2) / (ry ** 2) <= 1);
+          if (hit) dots += `<circle cx="${x}" cy="${y}" r="1.5" fill="#2c2725"/>`;
+        }
+      }
+      const spots = [
+        { x: 96, y: 74 }, { x: 266, y: 62 }, { x: 452, y: 146 }, { x: 142, y: 144 }, { x: 376, y: 72 }
       ];
       const devs = state.devices.slice(0, 5);
-      return `<svg viewBox="0 0 560 220" width="100%" height="100%">
-        <g stroke="#2a2422" stroke-width="1" stroke-dasharray="3 4">
-          <line x1="110" y1="78" x2="245" y2="66"/>
-          <line x1="245" y1="66" x2="380" y2="128"/>
-          <line x1="245" y1="66" x2="185" y2="158"/>
-          <line x1="380" y1="128" x2="470" y2="82"/>
-        </g>
-        ${devs.map((d, idx) => {
-          const p = coords[idx % coords.length];
+      return `<svg viewBox="0 0 560 225" width="100%" height="100%">
+        <defs>
+          <radialGradient id="hg-hot" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ef461b" stop-opacity="0.65"/><stop offset="60%" stop-color="#ef461b" stop-opacity="0.16"/><stop offset="100%" stop-color="#ef461b" stop-opacity="0"/></radialGradient>
+          <radialGradient id="hg-ok" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e68a2e" stop-opacity="0.45"/><stop offset="65%" stop-color="#e68a2e" stop-opacity="0.1"/><stop offset="100%" stop-color="#e68a2e" stop-opacity="0"/></radialGradient>
+        </defs>
+        ${dots}
+        ${devs.map((d, i) => {
+          const s = spots[i % spots.length];
           const hot = d.status === "isolated" || d.status === "alerting";
-          const col = d.status === "isolated" ? "#ef4444" : d.status === "alerting" ? "#f04419" : "#22c55e";
-          const r = hot ? 26 : 14;
-          return `<g>
-            <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}" opacity="0.14"/>
-            <circle cx="${p.x}" cy="${p.y}" r="${r * 0.6}" fill="${col}" opacity="0.28"/>
-            <circle cx="${p.x}" cy="${p.y}" r="5.5" fill="${col}"/>
-            <text x="${p.x}" y="${p.y + r + 13}" text-anchor="middle" fill="#b8b0ac" font-size="10.5">${esc(d.device_id)}</text>
+          const R = hot ? 34 : 22;
+          const col = hot ? "#ef461b" : "#e68a2e";
+          return `<g style="cursor:pointer" onclick="setView('devices')">
+            <circle cx="${s.x}" cy="${s.y}" r="${R}" fill="url(#${hot ? 'hg-hot' : 'hg-ok'})"/>
+            <circle cx="${s.x}" cy="${s.y}" r="${R * 0.52}" fill="${col}" opacity="0.22"/>
+            <circle cx="${s.x}" cy="${s.y}" r="4.5" fill="${col}"/>
+            <title>${esc(d.device_id)} (${esc(d.status)} · ${d.event_count} events)</title>
           </g>`;
         }).join("")}
       </svg>`;
@@ -686,11 +636,11 @@
 
     function wireframeSphereSvg() {
       return `<svg width="170" height="170" viewBox="0 0 180 180">
-        <defs><radialGradient id="sg" cx="50%" cy="45%" r="50%"><stop offset="0%" stop-color="#f04419" stop-opacity="0.25"/><stop offset="100%" stop-color="#f04419" stop-opacity="0"/></radialGradient></defs>
+        <defs><radialGradient id="sg" cx="50%" cy="45%" r="50%"><stop offset="0%" stop-color="#ef461b" stop-opacity="0.25"/><stop offset="100%" stop-color="#ef461b" stop-opacity="0"/></radialGradient></defs>
         <circle cx="90" cy="90" r="76" fill="url(#sg)"/>
-        ${[-45,-25,0,25,45].map((dy) => `<ellipse cx="90" cy="${90+dy}" rx="${Math.sqrt(Math.max(0, 66*66 - dy*dy))}" ry="${Math.max(6, Math.sqrt(Math.max(0, 66*66 - dy*dy))*0.28)}" fill="none" stroke="#f04419" stroke-opacity="0.45" stroke-width="0.9"/>`).join("")}
-        ${[0,30,60,90,120,150].map((deg) => `<ellipse cx="90" cy="90" rx="28" ry="66" fill="none" stroke="#f04419" stroke-opacity="0.4" stroke-width="0.9" transform="rotate(${deg} 90 90)"/>`).join("")}
-        <circle cx="90" cy="90" r="66" fill="none" stroke="#f04419" stroke-opacity="0.7" stroke-width="1.2"/>
+        ${[-45,-25,0,25,45].map((dy) => `<ellipse cx="90" cy="${90+dy}" rx="${Math.sqrt(Math.max(0, 66*66 - dy*dy))}" ry="${Math.max(6, Math.sqrt(Math.max(0, 66*66 - dy*dy))*0.28)}" fill="none" stroke="#ef461b" stroke-opacity="0.45" stroke-width="0.9"/>`).join("")}
+        ${[0,30,60,90,120,150].map((deg) => `<ellipse cx="90" cy="90" rx="28" ry="66" fill="none" stroke="#ef461b" stroke-opacity="0.4" stroke-width="0.9" transform="rotate(${deg} 90 90)"/>`).join("")}
+        <circle cx="90" cy="90" r="66" fill="none" stroke="#ef461b" stroke-opacity="0.7" stroke-width="1.2"/>
       </svg>`;
     }
 
@@ -711,8 +661,8 @@
           return `<line x1="${cx}" y1="${cy}" x2="${cx + Math.cos(a)*R}" y2="${cy + Math.sin(a)*R}" stroke="#2d2725" stroke-width="1"/>
                   <text x="${x}" y="${y}" text-anchor="middle" fill="#8b827d" font-size="9.5">${lbl}</text>`;
         }).join("")}
-        <polygon points="${pts(exp)}" fill="rgba(245, 158, 11, 0.16)" stroke="#f59e0b" stroke-width="1.5"/>
-        <polygon points="${pts(obs)}" fill="rgba(240, 68, 25, 0.28)" stroke="#f04419" stroke-width="2"/>
+        <polygon points="${pts(exp)}" fill="rgba(230, 138, 46, 0.16)" stroke="#e68a2e" stroke-width="1.5"/>
+        <polygon points="${pts(obs)}" fill="rgba(239, 70, 27, 0.28)" stroke="#ef461b" stroke-width="2"/>
       </svg>`;
     }
 
@@ -723,61 +673,57 @@
       const activePct = Math.min(100, Math.round(((k.open_incidents || 0) / Math.max(1, state.incidents.length)) * 100));
       const maxEvents = Math.max(1, ...state.devices.map((d) => d.event_count || 0));
 
-      const feedItems = [
-        ...state.incidents.slice(0, 5).map((i) => ({
+      let feedItems = [
+        ...state.incidents.slice(0, 6).map((i) => ({
           id: i.id,
           crit: i.severity === "high" || i.severity === "critical",
-          title: `${i.severity.toUpperCase()} · ${i.device_id}`,
-          sub: `${i.decision || i.detection_ref} · ${i.status}`,
-          ts: i.updated_utc,
+          title: `${i.severity === "critical" || i.severity === "high" ? "Critical anomaly detected" : "Finding opened"} on ${i.device_id}`,
+          sub: `${i.decision || i.detection_ref} · ${relTime(i.updated_utc)}`,
+          ts: i.updated_utc || "",
         })),
-        ...state.audit.slice(0, 5).map((a) => ({
+        ...state.audit.slice(0, 6).map((a) => ({
           id: null,
           crit: a.verdict === "DENY",
-          title: `Policy ${a.verdict}: ${a.action}`,
-          sub: `${a.actor} -> ${a.target} (${a.reason})`,
-          ts: a.ts_utc,
+          title: `Policy ${a.verdict === "DENY" ? "blocked" : "authorized"}: "${a.action}"`,
+          sub: `${a.actor} on ${a.target} · ${relTime(a.ts_utc)}`,
+          ts: a.ts_utc || "",
         })),
-      ].slice(0, 8);
+      ];
+      if (feedSort === "critical") {
+        feedItems.sort((a, b) => Number(b.crit) - Number(a.crit));
+      } else {
+        feedItems.sort((a, b) => b.ts.localeCompare(a.ts));
+      }
+      feedItems = feedItems.slice(0, 9);
 
       return `
-        <div class="topbar">
-          <div>
-            <div class="crumb">Workspace <span>/</span> Dashboard</div>
-            <h1 class="page-title">Security Overview</h1>
-          </div>
-          <div class="top-actions">
-            <button class="btn-ghost" onclick="exportIncidentsCsv()">Export CSV</button>
-          </div>
-        </div>
-
         <section class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-head"><span>MQTT Events</span><span class="kpi-delta">live</span></div>
+            <div class="kpi-head"><span>MQTT events</span><span class="kpi-delta">&#8599; live</span></div>
             <div class="kpi-body">
               <div><div class="kpi-num">${k.total_events ?? 0}</div><div class="kpi-sub">${k.devices_total ?? 0} monitored nodes</div></div>
-              ${sparkBarsSvg("#22c55e")}
+              ${biWaveformSvg("#22c55e")}
             </div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-head"><span>Active Incidents</span><span class="kpi-delta">${k.mitigated_incidents ?? 0} mitigated</span></div>
+            <div class="kpi-head"><span>Active incidents</span><span class="kpi-delta">${k.mitigated_incidents ?? 0} mitigated</span></div>
             <div class="kpi-body">
               <div><div class="kpi-num">${k.open_incidents ?? 0}</div><div class="kpi-sub">${state.incidents.length} total recorded</div></div>
-              ${ringGaugeSvg(activePct, "#f59e0b")}
+              ${tickedRingSvg(activePct, "#e68a2e")}
             </div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-head"><span>Fleet Health</span><span class="kpi-delta">${k.devices_isolated ?? 0} isolated</span></div>
+            <div class="kpi-head"><span>Fleet health</span><span class="kpi-delta">${k.devices_isolated ?? 0} isolated</span></div>
             <div class="kpi-body">
-              <div><div class="kpi-num">${healthyPct}%</div><div class="kpi-sub">non-isolated devices</div></div>
-              ${arcGaugeSvg(healthyPct)}
+              <div><div class="kpi-num">${healthyPct}%</div><div class="kpi-sub">active lab coverage</div></div>
+              ${tickedArcGaugeSvg(healthyPct)}
             </div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-head"><span>Policy Denies</span><span class="kpi-delta">PolicyGate</span></div>
+            <div class="kpi-head"><span>Policy blocks</span><span class="kpi-delta">PolicyGate</span></div>
             <div class="kpi-body">
               <div><div class="kpi-num">${k.policy_denies ?? 0}</div><div class="kpi-sub">${k.active_isolations ?? 0} active isolations</div></div>
-              ${sparkBarsSvg("#f04419")}
+              ${biWaveformSvg("#e68a2e")}
             </div>
           </div>
         </section>
@@ -785,16 +731,16 @@
         <section class="dash-split">
           <div class="card">
             <div class="card-head">
-              <div><div class="card-title">Threat Map</div><div class="card-sub">IoT lab nodes &amp; anomaly intensity</div></div>
-              <span class="card-sub">Live SQLite</span>
+              <div class="card-title">Threat map</div>
+              <span class="card-sub">Live Fleet</span>
             </div>
-            <div class="map-stage">${threatMapSvg()}</div>
+            <div class="map-stage">${worldThreatMapSvg()}</div>
             <div class="bar-list">
-              ${state.devices.slice(0, 5).map((d) => `
+              ${state.devices.slice(0, 6).map((d) => `
                 <div class="bar-row">
                   <span class="bar-val">${d.event_count}</span>
                   <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, Math.round((d.event_count / maxEvents) * 100))}%"></div></div>
-                  <span class="bar-label">${esc(d.device_id)} (${esc(d.room)})</span>
+                  <span class="bar-label">${esc(d.device_id)}, ${esc(d.room)}</span>
                 </div>
               `).join("")}
             </div>
@@ -802,19 +748,23 @@
 
           <div class="card">
             <div class="card-head">
-              <div><div class="card-title">Recent Activity</div><div class="card-sub">Detections, policy gates &amp; responses</div></div>
+              <div class="card-title">Recent activity</div>
+              <select class="select-dark" style="padding:3px 8px;font-size:11px" onchange="feedSort=this.value;render()">
+                <option value="latest" ${feedSort==='latest'?'selected':''}>Sort by: Latest</option>
+                <option value="critical" ${feedSort==='critical'?'selected':''}>Sort by: Critical</option>
+              </select>
             </div>
             <div class="feed">
               ${feedItems.length ? feedItems.map((f) => `
                 <div class="feed-item" ${f.id ? `onclick="openIncidentDetail('${esc(f.id)}')"` : `onclick="setView('audit')"`}>
-                  <div class="feed-ico ${f.crit ? 'crit' : ''}">!</div>
+                  <div class="feed-ico ${f.crit ? 'crit' : ''}">${f.crit ? '!' : '&bull;'}</div>
                   <div class="feed-main">
                     <strong>${esc(f.title)}</strong>
-                    <span>${esc(f.sub)} · ${esc(f.ts)}</span>
+                    <span>${esc(f.sub)}</span>
                   </div>
                   <span class="feed-arrow">&#8599;</span>
                 </div>
-              `).join("") : `<div style="color:var(--text-muted);padding:20px;text-align:center">No recent activity yet.</div>`}
+              `).join("") : `<div style="color:var(--text-muted);padding:24px;text-align:center">No recent activity yet.</div>`}
             </div>
           </div>
         </section>
@@ -830,9 +780,9 @@
       );
 
       const cols = [
-        { key: "open", label: "Open", dot: "#b8b0ac" },
-        { key: "investigating", label: "Investigating", dot: "#f59e0b" },
-        { key: "mitigated", label: "Mitigated", dot: "#f04419" },
+        { key: "open", label: "Open", dot: "#b6aeaa" },
+        { key: "investigating", label: "Investigating", dot: "#e68a2e" },
+        { key: "mitigated", label: "Mitigated", dot: "#ef461b" },
         { key: "resolved", label: "Resolved", dot: "#22c55e" },
       ];
 
@@ -855,7 +805,7 @@
                   <span class="k-id"><span class="sev-dot"></span>${esc(i.id)}</span>
                   <span style="font-size:10.5px;color:var(--text-muted)">${esc(i.severity)}</span>
                 </div>
-                <div class="k-asset">${esc(i.device_id)} · ${esc(i.decision || i.detection_ref)}</div>
+                <div class="k-asset">${esc(i.device_id)} &middot; ${esc(i.decision || i.detection_ref)}</div>
                 <div class="k-foot">
                   <span>${esc((i.updated_utc || "").slice(0, 10))}</span>
                   <span class="assignee">AI</span>
@@ -874,7 +824,7 @@
               <td>${esc(i.device_id)}</td>
               <td>${esc(i.decision || i.detection_ref)}</td>
               <td><span class="pill-status ${esc(i.status)}">${esc(i.status)}</span></td>
-              <td>${esc(i.updated_utc)}</td>
+              <td>${esc(relTime(i.updated_utc))}</td>
             </tr>
           `).join("")}</tbody>
         </table></div>`;
@@ -893,7 +843,7 @@
           </div>
         </div>
         <div class="filter-bar">
-          <input class="input-dark" placeholder="Filter device, ID, summary..." value="${esc(filters.q)}" oninput="filters.q=this.value;render()" />
+          <input class="input-dark" id="findings-search" placeholder="Filter device, ID, summary..." value="${esc(filters.q)}" oninput="filters.q=this.value;render()" />
           <select class="select-dark" onchange="filters.severity=this.value;render()">
             <option value="">All severities</option>
             <option value="critical" ${filters.severity==='critical'?'selected':''}>Critical</option>
@@ -937,13 +887,13 @@
             <div class="card">
               <div class="card-head">
                 <div class="card-title">Threat Surface Map</div>
-                <div class="card-sub"><span style="color:#f04419">Observed</span> &middot; <span style="color:#f59e0b">Expected</span></div>
+                <div class="card-sub"><span style="color:#ef461b">Observed</span> &middot; <span style="color:#e68a2e">Expected</span></div>
               </div>
               ${radarSvg(inc)}
             </div>
           </div>
           <div class="card">
-            <div class="card-head"><div class="card-title">Affected Entities</div></div>
+            <div class="card-head"><div class="card-title">Entities</div></div>
             <div class="table-wrap"><table>
               <thead><tr><th>Device</th><th>IP</th><th>Status</th><th>Action</th></tr></thead>
               <tbody><tr>
@@ -961,7 +911,7 @@
             <div class="tl-card">
               <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
                 <strong style="color:var(--text)">${esc(t.kind)} &middot; ${esc(t.actor)}</strong>
-                <span>${esc(t.ts_utc)}</span>
+                <span>${esc(relTime(t.ts_utc))}</span>
               </div>
               <div>${esc(t.summary)}</div>
               ${Object.keys(t.details || {}).length ? `<pre>${esc(JSON.stringify(t.details, null, 2))}</pre>` : ""}
@@ -984,8 +934,8 @@
           <div class="inc-banner-top">
             <div><strong style="font-size:16px">${esc(inc.id)}</strong> <span style="color:var(--text-muted);margin-left:8px">${esc(inc.device_id)}</span></div>
             <div class="inc-meta">
-              <div><label>Created</label><span>${esc((inc.created_utc || "").slice(0, 19))}</span></div>
-              <div><label>Last Update</label><span>${esc((inc.updated_utc || "").slice(0, 19))}</span></div>
+              <div><label>Created</label><span>${esc((inc.created_utc || "").slice(0, 10))}</span></div>
+              <div><label>Last Update</label><span>${esc(relTime(inc.updated_utc))}</span></div>
               <div><label>Status</label><span class="pill-status ${esc(inc.status)}">${esc(inc.status)}</span></div>
               <div><label>Severity</label><span class="pill-status sev-${esc(inc.severity)}"><span class="sev-dot"></span>${esc(inc.severity)}</span></div>
             </div>
@@ -1022,14 +972,14 @@
       return `
         <div class="topbar"><div><div class="crumb">Home &rsaquo; Isolations</div><h1 class="page-title">Device Isolations</h1></div></div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Device</th><th>Status</th><th>Actor</th><th>Reason</th><th>Started (UTC)</th><th>Action</th></tr></thead>
+          <thead><tr><th>Device</th><th>Status</th><th>Actor</th><th>Reason</th><th>Started</th><th>Action</th></tr></thead>
           <tbody>${state.isolations.length ? state.isolations.map((x) => `
             <tr>
               <td><strong>${esc(x.device_id)}</strong></td>
               <td><span class="pill-status ${x.status==='active'?'isolated':'resolved'}">${esc(x.status)}</span></td>
               <td>${esc(x.actor)}</td>
               <td>${esc(x.reason)}</td>
-              <td>${esc(x.started_utc)}</td>
+              <td>${esc(relTime(x.started_utc))}</td>
               <td>${x.status==='active' ? `<button class="btn-danger" onclick="releaseDevice('${esc(x.device_id)}','${esc(x.incident_id||'')}')">Release</button>` : "-"}</td>
             </tr>`).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:28px">No isolations recorded yet.</td></tr>`}
           </tbody>
@@ -1040,10 +990,10 @@
       return `
         <div class="topbar"><div><div class="crumb">Home &rsaquo; Policy Audit</div><h1 class="page-title">Policy Gate Audit Log</h1></div></div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Time (UTC)</th><th>Actor</th><th>Action</th><th>Target</th><th>Verdict</th><th>Reason</th></tr></thead>
+          <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Verdict</th><th>Reason</th></tr></thead>
           <tbody>${state.audit.length ? state.audit.map((a) => `
             <tr>
-              <td>${esc(a.ts_utc)}</td>
+              <td>${esc(relTime(a.ts_utc))}</td>
               <td>${esc(a.actor)}</td>
               <td><code>${esc(a.action)}</code></td>
               <td>${esc(a.target)}</td>
@@ -1055,6 +1005,10 @@
     }
 
     function render() {
+      const activeEl = document.activeElement;
+      const focusId = activeEl && activeEl.id === "findings-search" ? "findings-search" : null;
+      const selStart = focusId ? activeEl.selectionStart : null;
+
       const root = document.getElementById("main-root");
       if (currentView === "dashboard") root.innerHTML = renderDashboard();
       else if (currentView === "findings") root.innerHTML = renderFindings();
@@ -1062,6 +1016,14 @@
       else if (currentView === "devices") root.innerHTML = renderDevices();
       else if (currentView === "isolations") root.innerHTML = renderIsolations();
       else root.innerHTML = renderAudit();
+
+      if (focusId) {
+        const el = document.getElementById(focusId);
+        if (el) {
+          el.focus();
+          if (selStart !== null) el.setSelectionRange(selStart, selStart);
+        }
+      }
     }
 
     loadHealth();
@@ -1069,12 +1031,16 @@
     const es = new EventSource("/api/stream");
     es.onmessage = (ev) => {
       const data = JSON.parse(ev.data);
+      const changed =
+        JSON.stringify(state.kpis) !== JSON.stringify(data.kpis) ||
+        state.incidents.length !== data.incidents.length ||
+        state.isolations.length !== data.isolations.length;
       state.kpis = data.kpis;
       state.devices = data.devices;
       state.incidents = data.incidents;
       state.isolations = data.isolations;
       document.getElementById("nav-open-badge").textContent = data.kpis.open_incidents ?? 0;
-      render();
+      if (changed) render();
     };
   </script>
 </body>

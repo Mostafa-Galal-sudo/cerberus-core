@@ -74,8 +74,8 @@ mqtt_events -> src/detection/features.py  -> rules | ML | fingerprint | hybrid
 |-------|--------|
 | Testbed / simulator | simulator + anomaly injector running; real ESP32 testbed planned (C4) |
 | Detection | done (C2) — rules, Isolation Forest, deviation baseline, device fingerprint, hybrid |
-| Agents | not started (C3) |
-| Response / policy | schema planned (C3) |
-| Presentation | not started (C3) |
+| Agents | done (C3) — Groq defense agent + tools, DeepSeek attack agent, deterministic fallback |
+| Response / policy | done (C3) — PolicyGate (allowlist, scope, ratelimit, audit) + simulated isolation |
+| Presentation | done (C3) — FastAPI + SSE SOC dashboard (CyFocus dark workspace) |
 
 Task-level plan: `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.

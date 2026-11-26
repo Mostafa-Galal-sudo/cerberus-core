@@ -60,3 +60,16 @@ The task-level plan lives in `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 4. `features.py` trailing partial window divided `rate_per_sec` by full `window_sec` — fixed to divide by actual tail duration; added `topic_entropy` (14 features).
 5. `HybridDetector.predict()` did not flag unrecognized devices on its own — added `unknown_device:<id>` detection + explanation when `fingerprint` is attached.
 6. `dataset.load_sample()` took the first `nrows` per CSV (capture-start bias) — switched to seeded random sampling (`seed=0`), improving `Recon` hybrid recall from `0.110` to `0.230`.
+
+## Checkpoint 3 — Policy Gate, Agents, Response & SOC Dashboard (26 Nov) — COMPLETE
+
+| Task | Result | Evidence |
+|------|--------|----------|
+| C3-T01 policy gate | `PolicyGate`: allowlist, lab scope, sliding-window rate limit, append-only SQLite/JSONL audit | `src/policy/`, `tests/test_policy.py` |
+| C3-T02 agent tools | Read-only `db_tools`, `fingerprint_tools`, `pcap_tools` (audit + timeline logged) | `src/agents/tools/`, `tests/test_agent_tools.py` |
+| C3-T03 incidents + persistence | Extended SQLite schema (`policy_audit`, `incidents`, `incident_events`, `isolations`) + `IncidentStore` | `src/storage/db.py`, `src/incidents/`, `tests/test_persistence.py` |
+| C3-T04 defense agent | Groq API tool-calling investigation + `PolicyGate` isolation | `src/agents/defense_agent.py`, `tests/test_agents.py` |
+| C3-T05 attack agent | DeepSeek API scenario proposal -> `PolicyGate` -> `src/simulator/anomalies.py` | `src/agents/attack_agent.py`, `tests/test_agents.py` |
+| C3-T06 response isolation | Simulated isolation + TTL expiry/step-down via `IsolationRegistry` | `src/response/`, `tests/test_response.py` |
+| C3-T07 SOC dashboard | FastAPI + SSE + CyFocus-styled dark SOC UI (KPIs, devices, incidents drawer, isolations, audit) | `src/dashboard/`, `tests/test_dashboard.py` |
+| C3-T09 fallback mode | Deterministic rules-only investigation & attack plan when LLM keys missing/rate-limited | `src/agents/fallback.py`, `tests/test_agents.py` |

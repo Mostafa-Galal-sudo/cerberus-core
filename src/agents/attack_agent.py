@@ -68,7 +68,10 @@ class AttackAgent:
         return self._client
 
     def propose(self, prompt: str = "Generate a lab MQTT anomaly test.") -> tuple[str, dict[str, Any], str | None]:
-        client = self._get_client()
+        try:
+            client = self._get_client()
+        except Exception as exc:
+            return "fallback", fallback_attack_plan(), str(exc)
         if client is None:
             return "fallback", fallback_attack_plan(), None
 
@@ -124,6 +127,7 @@ class AttackAgent:
                 topic=topic or "lab/room1/climate",
                 count=count,
                 interval=interval,
+                decision=decision,
             )
         elif action == "attack_bloat":
             injected = inject_payload_bloat(
@@ -133,6 +137,7 @@ class AttackAgent:
                 topic=topic or "lab/room1/power",
                 count=count,
                 interval=interval,
+                decision=decision,
             )
         elif action == "attack_rogue":
             injected = inject_rogue_device(
@@ -142,6 +147,7 @@ class AttackAgent:
                 topic=topic or "lab/room9/unknown",
                 count=count,
                 interval=interval,
+                decision=decision,
             )
         else:
             injected = 0

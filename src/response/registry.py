@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from src.policy import PolicyDecision, PolicyDeniedError
 from src.storage.db import utc_now, write_lock
 
 
@@ -22,6 +23,16 @@ class IsolationRecord:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def require_decision(decision: PolicyDecision | None, action: str, target: str) -> None:
+    if decision is None or not decision.allowed:
+        raise PolicyDeniedError(f"no ALLOW decision for {action} on {target!r}")
+    if decision.action != action or decision.target != target:
+        raise PolicyDeniedError(
+            f"decision mismatch: expected {action} on {target!r}, "
+            f"got {decision.action} on {decision.target!r}"
+        )
 
 
 class IsolationRegistry:
@@ -53,11 +64,15 @@ class IsolationRegistry:
         self,
         device_id: str,
         *,
+        decision: PolicyDecision,
         reason: str,
         actor: str,
         ttl_sec: int | None = 300,
         incident_id: str | None = None,
     ) -> IsolationRecord:
+        require_decision(decision, "isolate_device", device_id)
+        if decision.actor != actor:
+            raise PolicyDeniedError(f"decision actor {decision.actor!r} != executor {actor!r}")
         now_dt = datetime.now(timezone.utc)
         started = now_dt.isoformat(timespec="milliseconds")
         expires = (
@@ -85,7 +100,14 @@ class IsolationRegistry:
         row = self.conn.execute("SELECT * FROM isolations WHERE id = ?", (row_id,)).fetchone()
         return IsolationRecord(**dict(row))
 
-    def release(self, device_id: str, *, now_utc: str | None = None) -> int:
+    def release(
+        self,
+        device_id: str,
+        *,
+        decision: PolicyDecision,
+        now_utc: str | None = None,
+    ) -> int:
+        require_decision(decision, "release_device", device_id)
         now = now_utc or utc_now()
         with write_lock():
             cur = self.conn.execute(

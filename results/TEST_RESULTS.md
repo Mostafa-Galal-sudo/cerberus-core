@@ -1,138 +1,176 @@
 # Cerberus-Core — Test Results Report
 
-> **Generated:** 2026-11-26  
-> **Platform:** Windows (win32)  
-> **Python:** 3.14.3 · pytest 9.2.0 · pluggy 1.7.0  
-> **Duration:** 226.99 s (03:46)  
-> **Result:** ✅ **38 passed, 0 failed, 0 errors**
+> **Generated:** 2026-11-26
+> **Platform:** Windows (win32)
+> **Python:** 3.14.3 · pytest 9.2.0
+> **Command:** `.venv\Scripts\python -m pytest tests -q` (run from the repository root)
+> **Duration:** 383.70 s (06:23)
+> **Result:** 71 passed, 0 failed, 0 errors
+
+This report records the final verification run after the H2/H3, M1–M6 and L1–L4 fixes.
+The earlier baseline run was `1 failed, 63 passed in 316.88s`; the failure was
+`tests/test_lab_detection.py::test_lab_check_all_detectors_fire_on_anomalies`
+(`assert 0 == 3`) caused by the local `fingerprint.py` regression. Restoring the
+committed MAD/standard-deviation fallback resolved it without changing the
+committed detection logic.
 
 ---
 
 ## Summary
 
 | Test File | Tests | Passed | Failed |
-|---|---|---|---|
+|---|---:|---:|---:|
+| `tests/test_agent_tools.py` | 2 | 2 | 0 |
+| `tests/test_agents.py` | 7 | 7 | 0 |
+| `tests/test_closed_loop.py` | 10 | 10 | 0 |
+| `tests/test_dashboard.py` | 2 | 2 | 0 |
 | `tests/test_detection_data.py` | 7 | 7 | 0 |
 | `tests/test_detection_hybrid.py` | 10 | 10 | 0 |
 | `tests/test_detection_models.py` | 8 | 8 | 0 |
 | `tests/test_lab_detection.py` | 2 | 2 | 0 |
-| `tests/test_traffic_gen.py` | 11 | 11 | 0 |
-| **Total** | **38** | **38** | **0** |
+| `tests/test_persistence.py` | 4 | 4 | 0 |
+| `tests/test_policy.py` | 4 | 4 | 0 |
+| `tests/test_response.py` | 3 | 3 | 0 |
+| `tests/test_traffic_gen.py` | 12 | 12 | 0 |
+| **Total** | **71** | **71** | **0** |
 
 ---
 
-## 1. `tests/test_detection_data.py` — Feature Extraction & Dataset Loading
+## 1. `tests/test_agent_tools.py` — Read-only Agent Tools & Audit Trail
 
-These tests cover `src/detection/features.py` and `src/detection/dataset.py`.  
-They verify that raw SQLite events are correctly windowed, features are computed accurately, and dataset loading is unbiased and reproducible.
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_db_tools_and_audit_and_incident_trail` | PASSED | Event queries and incident-history queries are audited and appended to the incident timeline; incident opening itself is now an audited `open_incident` action (3 audit rows). |
+| 2 | `test_fingerprint_tool_and_pcap_graceful_fallback` | PASSED | Deviation report identifies a known device; missing PCAP data degrades gracefully instead of raising. |
 
-| # | Test Name | Status | What it verifies |
-|---|---|---|---|
-| 1 | `test_windows_from_simulated_db` | ✅ PASSED | `windows_from_db()` reads a real SQLite DB and groups events into 60-second windows; confirms each window has the 14 expected feature columns (including `topic_entropy`) with no NaN values |
-| 2 | `test_category_mapping_covers_every_folder` | ✅ PASSED | Every sub-folder in `data/raw/ciciot2023/CSV/` maps to a known attack category; ensures `CATEGORY_MAP` in `dataset.py` is exhaustive and no folder is silently dropped as "unknown" |
-| 3 | `test_sample_loads_both_classes_and_drops_constants` | ✅ PASSED | `load_sample()` returns rows from both benign (label=0) and attack (label=1) classes; constant-valued columns are dropped to prevent models from learning on degenerate features |
-| 4 | `test_split_never_shares_a_capture_file` | ✅ PASSED | `partition()` ensures no CSV file appears in both train and test splits — guards against data leakage across the train/test boundary |
-| 5 | `test_trailing_partial_window_rate_uses_actual_duration` | ✅ PASSED | The last (partial) time window uses its real elapsed duration as the denominator for `rate_per_sec`, not the full 60s — prevents systematic underestimation of rates in short trailing windows |
-| 6 | `test_topic_entropy_zero_and_even_split` | ✅ PASSED | `topic_entropy` is 0.0 when all events share one topic (no diversity), and equals `log2(n)` when events are spread evenly across `n` topics (maximum diversity) |
-| 7 | `test_load_sample_uses_seeded_random_sampling` | ✅ PASSED | `load_sample(seed=0)` uses seeded random row sampling (not the first N rows); same seed → identical sample; different seeds → different samples — removes capture-start bias |
+## 2. `tests/test_agents.py` — Defense/Attack Agents & Policy Boundaries
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_defense_agent_fallback_when_no_api_key` | PASSED | Without `GROQ_API_KEY` the defense agent uses deterministic investigation and stays policy-bounded. |
+| 2 | `test_defense_agent_llm_tool_calling_and_policy_isolation` | PASSED | Mocked Groq tool-calling path writes the incident timeline and isolates only through an `ALLOW` decision. |
+| 3 | `test_defense_agent_falls_back_on_api_exception` | PASSED | An API exception falls back to deterministic investigation. |
+| 4 | `test_attack_agent_respects_policy_gate_and_injects_in_lab_scope` | PASSED | DeepSeek plan is authorized before injection; out-of-scope targets are denied and no events are written. |
+| 5 | `test_defense_agent_falls_back_on_sdk_import_failure` | PASSED | SDK import failure is caught in `_get_client()` and reported as a fallback with an error (M4). |
+| 6 | `test_attack_agent_falls_back_on_sdk_import_failure` | PASSED | Same graceful degradation for the attack agent (M4). |
+| 7 | `test_log_alert_denial_is_not_recorded_as_logged` | PASSED | A denied `log_alert` writes a `policy_denied` timeline event and never marks the incident `outcome="logged"` (M3). |
+
+## 3. `tests/test_closed_loop.py` — In-process End-to-end Loop
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_loop_run_once_produces_incident` | PASSED | One attack → detect → defend cycle creates an incident. |
+| 2 | `test_loop_attack_events_written_to_db` | PASSED | Injected attack events are persisted to `mqtt_events`. |
+| 3 | `test_loop_incident_opened_with_correct_device` | PASSED | Incident device matches the attack target. |
+| 4 | `test_loop_policy_audit_has_allow_for_attack_action` | PASSED | Attack execution carries an `ALLOW` audit decision. |
+| 5 | `test_loop_isolation_recorded_on_high_severity` | PASSED | High-severity detections produce a real isolation record. |
+| 6 | `test_loop_no_bypass_policy_on_isolation` | PASSED | Isolation cannot be executed without a policy decision (M1/M2). |
+| 7 | `test_loop_fallback_works_without_api_keys` | PASSED | The loop completes with no LLM credentials. |
+| 8 | `test_loop_on_event_callback_fires` | PASSED | SSE/event callback receives loop updates. |
+| 9 | `test_loop_run_multiple_cycles` | PASSED | Three consecutive cycles remain consistent. |
+| 10 | `test_make_loop_convenience_factory` | PASSED | `make_loop()` wiring works with a DB path. |
+
+## 4. `tests/test_dashboard.py` — SOC Dashboard & Release Endpoint
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_dashboard_endpoints_and_release_flow` | PASSED | Health/overview/incidents/isolations/audit endpoints respond; release requires `X-Cerberus-Token`, rejects missing/wrong tokens with 401, accepts the configured token, and SSE payload contains `audit`. |
+| 2 | `test_dashboard_release_fails_closed_without_configured_token` | PASSED | With no `CERBERUS_DASHBOARD_TOKEN`, release returns 503 `DASHBOARD_AUTH_NOT_CONFIGURED` (H3). |
+
+## 5. `tests/test_detection_data.py` — Features, Dataset & Leakage-free Splits
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_windows_from_simulated_db` | PASSED | Sliding windows are produced from stored events. |
+| 2 | `test_category_mapping_covers_every_folder` | PASSED | Every CICIoT2023 attack folder maps to a category. |
+| 3 | `test_sample_loads_both_classes_and_drops_constants` | PASSED | Sampled data includes both classes and drops constant columns once. |
+| 4 | `test_split_never_shares_a_capture_file` | PASSED | Train/test split is file-level; no capture leaks across sides. |
+| 5 | `test_trailing_partial_window_rate_uses_actual_duration` | PASSED | Partial trailing windows use their real duration for rate calculation. |
+| 6 | `test_topic_entropy_zero_and_even_split` | PASSED | Entropy is 0 for a single topic and maximal for an even split. |
+| 7 | `test_load_sample_uses_seeded_random_sampling` | PASSED | Sampling is reproducible with a fixed seed. |
+
+## 6. `tests/test_detection_hybrid.py` — Deviation Baseline, Fingerprint & Hybrid
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_baseline_flags_out_of_distribution_rows` | PASSED | Population baseline fires on shifted rows. |
+| 2 | `test_baseline_stays_quiet_on_benign_like_rows` | PASSED | Baseline stays quiet on benign-like rows. |
+| 3 | `test_baseline_drivers_name_the_shifted_features` | PASSED | Explanation names the deviating features. |
+| 4 | `test_baseline_limit_is_positive_and_finite` | PASSED | Fitted limit is finite and positive. |
+| 5 | `test_hybrid_alerts_on_rules_and_on_deviation_alone` | PASSED | Hybrid union keeps both detection branches. |
+| 6 | `test_hybrid_keeps_benign_quiet` | PASSED | Benign traffic does not trigger hybrid alerts. |
+| 7 | `test_hybrid_confidence_is_bounded_and_explained` | PASSED | Confidence is bounded and carries an explanation. |
+| 8 | `test_hybrid_fingerprint_signal_can_raise_an_alert` | PASSED | Per-device fingerprint signal can independently raise an alert. |
+| 9 | `test_fingerprint_min_windows_fallback_and_known` | PASSED | Fingerprint handles insufficient baselines and known devices (H2 regression coverage). |
+| 10 | `test_hybrid_flags_unknown_device_with_explanation` | PASSED | Unknown device produces an explained alert. |
+
+## 7. `tests/test_detection_models.py` — Rules & Isolation Forest
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_rule_engine_near_silent_on_benign` | PASSED | Rules do not fire on benign traffic. |
+| 2 | `test_rule_engine_min_hits_trades_recall_for_precision` | PASSED | Two-hit mode raises precision and lowers recall. |
+| 3 | `test_rule_engine_flags_rate_spike` | PASSED | Rate spike is detected. |
+| 4 | `test_rule_engine_returns_one_reason_list_per_row` | PASSED | One reason list is returned per evaluated row. |
+| 5 | `test_isolation_forest_flags_shifted_rows` | PASSED | Isolation Forest flags shifted rows. |
+| 6 | `test_isolation_forest_stays_quiet_on_training_distribution` | PASSED | It stays quiet on the training distribution. |
+| 7 | `test_split_covers_single_file_folders_in_test` | PASSED | Single-file folders still reach the test partition. |
+| 8 | `test_rule_engine_mqtt_feature_set` | PASSED | Rules work on the shared MQTT feature set. |
+
+## 8. `tests/test_lab_detection.py` — Lab Check & Benchmark Helpers
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_lab_check_all_detectors_fire_on_anomalies` | PASSED | With non-overlapping 60 s windows (M5): `train_windows=177`, `normal_windows=57`, `flood_windows=3` with 3 rule/FP/hybrid alerts each, `bloat_windows=3` with 3 rule/FP alerts, `rogue_windows=3`, rogue device unknown. |
+| 2 | `test_benchmark_confusion_table_and_partition` | PASSED | Confusion table rendering and partition helpers behave as expected. |
+
+## 9. `tests/test_persistence.py` — Schema, Config & Incident Timeline
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_extended_schema_tables_created` | PASSED | All five C3 tables are created. |
+| 2 | `test_get_db_path_uses_env_and_override` | PASSED | `CERBERUS_DB_PATH` and explicit override resolve correctly. |
+| 3 | `test_incident_opening_requires_policy_allow` | PASSED | `create_incident` denies an unauthorized actor, creates no incident, and logs one `DENY` audit row (M2). |
+| 4 | `test_incident_lifecycle_and_ordered_timeline` | PASSED | Incident lifecycle produces an ordered evidence timeline. |
+
+## 10. `tests/test_policy.py` — Allowlist, Scope, Rate Limit
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_policy_allows_valid_defense_and_attack_actions` | PASSED | Valid defense/attack actions are `ALLOW` and written to SQLite + JSONL audit. |
+| 2 | `test_policy_blocks_cross_role_and_unknown_actions` | PASSED | Cross-role and unknown actions are denied. |
+| 3 | `test_policy_blocks_wildcards_and_out_of_scope_targets_and_topics` | PASSED | Wildcards and out-of-scope targets/topics are denied. |
+| 4 | `test_policy_rate_limiter_enforces_window_and_recovers` | PASSED | Sliding-window rate limit is enforced and recovers. |
+
+## 11. `tests/test_response.py` — Isolation Registry Execution Primitive
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_isolate_and_release_require_policy_and_update_incident` | PASSED | Attack actor is denied; defense actor isolates and releases with the incident updated. |
+| 2 | `test_registry_rejects_execution_without_allow_decision` | PASSED | `activate()` and `release()` reject a `DENY` decision directly; no isolation state is created (M1). |
+| 3 | `test_isolation_expiry_steps_down_stale_records` | PASSED | Stale isolations step down on expiry. |
+
+## 12. `tests/test_traffic_gen.py` — Simulator & Anomaly Injection
+
+| # | Test | Status | Verifies |
+|---:|---|---|---|
+| 1 | `test_schema_and_indexes_created` | PASSED | Storage schema and indexes exist. |
+| 2 | `test_save_event_roundtrip` | PASSED | Events round-trip through SQLite. |
+| 3 | `test_payload_sizes_stay_in_profile_range` | PASSED | Payload sizes respect device profiles. |
+| 4 | `test_climate_stays_near_baseline` | PASSED | Climate sensor stays near baseline. |
+| 5 | `test_climate_dropout_returns_none_sometimes` | PASSED | Simulated offline behavior is exercised. |
+| 6 | `test_power_toggle_changes_state` | PASSED | Plug state toggles correctly. |
+| 7 | `test_event_payload_values` | PASSED | Event payload fields are valid. |
+| 8 | `test_status_payload_shape` | PASSED | Status payload shape is valid. |
+| 9 | `test_summary_aggregates_by_device_and_direction` | PASSED | Summary aggregates by device and direction. |
+| 10 | `test_log_command_records_operator` | PASSED | Operator commands are recorded. |
+| 11 | `test_anomaly_injectors_log_events_without_broker` | PASSED | Flood/bloat/rogue injectors write events when given real `ALLOW` decisions. |
+| 12 | `test_anomaly_injector_rejects_denied_decision` | PASSED | An injector given a `DENY` decision writes zero events (M1). |
 
 ---
 
-## 2. `tests/test_detection_hybrid.py` — Hybrid Detector & Deviation Baseline
+## Evidence boundary
 
-These tests cover `src/detection/hybrid.py` and `src/detection/fingerprint.py`.  
-They verify the full detection pipeline: statistical anomaly detection, device fingerprinting, confidence scoring, and human-readable explanations.
-
-| # | Test Name | Status | What it verifies |
-|---|---|---|---|
-| 1 | `test_baseline_flags_out_of_distribution_rows` | ✅ PASSED | `DeviationBaseline` raises an alert when a row is statistically far from the training distribution (high z-score on rate features) |
-| 2 | `test_baseline_stays_quiet_on_benign_like_rows` | ✅ PASSED | `DeviationBaseline` does **not** alert on rows that look like the training data — confirms the false-positive rate is controlled |
-| 3 | `test_baseline_drivers_name_the_shifted_features` | ✅ PASSED | `drivers()` ranks features by **unclipped** z-score so that features with extreme shifts (e.g. `Rate`) always appear in the top-k list; prevents ties at the clipping ceiling from omitting true drivers |
-| 4 | `test_baseline_limit_is_positive_and_finite` | ✅ PASSED | The adaptive threshold (MAD-based, with std fallback) is always a positive finite number — prevents division-by-zero and ±inf thresholds on degenerate data |
-| 5 | `test_hybrid_alerts_on_rules_and_on_deviation_alone` | ✅ PASSED | `HybridDetector` fires when **either** the rule engine triggers **or** the deviation baseline triggers — both signal paths are active |
-| 6 | `test_hybrid_keeps_benign_quiet` | ✅ PASSED | `HybridDetector` does **not** alert on a normal benign window, confirming both detectors are simultaneously quiet on clean traffic |
-| 7 | `test_hybrid_confidence_is_bounded_and_explained` | ✅ PASSED | `confidence` is always in `[0.0, 1.0]`; every alert includes a non-empty human-readable `explanation` string listing the reason(s) for the alert |
-| 8 | `test_hybrid_fingerprint_signal_can_raise_an_alert` | ✅ PASSED | A device that deviates from its own historical fingerprint (learned per-device baseline) triggers an alert, even if rule and global-baseline detectors stay quiet |
-| 9 | `test_fingerprint_min_windows_fallback_and_known` | ✅ PASSED | `DeviceFingerprint` returns `known()=False` and falls back to the global baseline until it has seen `min_windows` training samples for a device; `known()` becomes `True` only after enough data |
-| 10 | `test_hybrid_flags_unknown_device_with_explanation` | ✅ PASSED | `HybridDetector.predict()` directly flags a device ID never seen during training with `severity="high"` and an explanation string containing `unknown_device:<id>` — the detector itself, not fingerprint.known(), raises this alert |
-
----
-
-## 3. `tests/test_detection_models.py` — Rule Engine & Isolation Forest
-
-These tests cover `src/detection/models.py`.  
-They verify the rule-based detector, the Isolation Forest anomaly detector, and dataset splitting for training.
-
-| # | Test Name | Status | What it verifies |
-|---|---|---|---|
-| 1 | `test_rule_engine_near_silent_on_benign` | ✅ PASSED | `RuleEngine` raises ≤5% false-positive rate on a large benign-like dataset — rules are tight enough not to spam alerts on normal traffic |
-| 2 | `test_rule_engine_min_hits_trades_recall_for_precision` | ✅ PASSED | With `min_hits=2`, the rule engine requires two separate rule conditions to fire before alerting; this reduces false positives at the cost of some recall |
-| 3 | `test_rule_engine_flags_rate_spike` | ✅ PASSED | A row with a very high `rate_per_sec` value correctly triggers the rate-spike rule; confirms the threshold and logic are wired correctly |
-| 4 | `test_rule_engine_returns_one_reason_list_per_row` | ✅ PASSED | `predict()` returns one list of triggered rule names per input row; the output shape matches the input, and no reason lists are `None` |
-| 5 | `test_isolation_forest_flags_shifted_rows` | ✅ PASSED | `IsolestForest` (trained on benign-like data) assigns anomaly predictions to rows whose features are shifted far outside the training distribution |
-| 6 | `test_isolation_forest_stays_quiet_on_training_distribution` | ✅ PASSED | Most rows from the same distribution as the training set are **not** flagged as anomalies — contamination parameter is calibrated |
-| 7 | `test_split_covers_single_file_folders_in_test` | ✅ PASSED | `partition()` handles the edge case where an attack category folder contains only one CSV file — that file still ends up in test (not silently dropped) |
-| 8 | `test_rule_engine_mqtt_feature_set` | ✅ PASSED | `RuleEngine(feature_set="mqtt")` works with the full 14-feature MQTT feature vector; confirms `FEATURE_NAMES` and rule thresholds are compatible with the extended feature set including `topic_entropy` |
-
----
-
-## 4. `tests/test_lab_detection.py` — End-to-End Lab Integration
-
-These tests run the full pipeline against the **real lab SQLite database** (`data/lab/lab_traffic.db`) and the full CICIoT2023 benchmark dataset.  
-They are the highest-level integration tests in the suite.
-
-> [!NOTE]
-> `test_benchmark_confusion_table_and_partition` reads all 309 CICIoT2023 CSV files (~8.5 GB).
-> It requires the dataset to be downloaded to `data/raw/ciciot2023/CSV/`.
-> This test alone accounts for most of the 226 s runtime.
-
-| # | Test Name | Status | What it verifies |
-|---|---|---|---|
-| 1 | `test_lab_check_all_detectors_fire_on_anomalies` | ✅ PASSED | `lab_check.py` runs the rule engine, Isolation Forest, deviation baseline, and fingerprint detector against the real lab DB (which contains injected MQTT anomalies); confirms **all four** detectors produce at least one alert on the anomalous traffic |
-| 2 | `test_benchmark_confusion_table_and_partition` | ✅ PASSED | Runs the full CICIoT2023 benchmark: trains all five classifiers (rules, rules_strict, iforest, baseline, hybrid), evaluates on the held-out test partition, and asserts that confusion matrix outputs include TP, FP, TN, FN counts for every model; also checks that the train/test partition is free of leakage |
-
----
-
-## 5. `tests/test_traffic_gen.py` — MQTT Traffic Simulator
-
-These tests cover `src/simulator/traffic_gen.py` and `src/simulator/anomalies.py`.  
-They verify the simulated IoT device traffic generator and the live MQTT anomaly injectors.
-
-| # | Test Name | Status | What it verifies |
-|---|---|---|---|
-| 1 | `test_schema_and_indexes_created` | ✅ PASSED | `TrafficGen` creates the SQLite DB with the correct table schema and indexes on `(timestamp, device_id)` — fast range queries for windowing are supported from the start |
-| 2 | `test_save_event_roundtrip` | ✅ PASSED | An event written via `save_event()` can be read back with identical field values — confirms serialization, storage, and deserialization are lossless |
-| 3 | `test_payload_sizes_stay_in_profile_range` | ✅ PASSED | Generated event payloads have byte lengths within the min/max bounds declared in the device profile — no oversized or empty payloads slip through |
-| 4 | `test_climate_stays_near_baseline` | ✅ PASSED | Simulated climate sensor readings (temperature, humidity) stay within ±3σ of the configured baseline; validates the sensor noise model |
-| 5 | `test_climate_dropout_returns_none_sometimes` | ✅ PASSED | The climate sensor occasionally returns `None` (simulating a sensor dropout/offline event) according to the configured dropout probability |
-| 6 | `test_power_toggle_changes_state` | ✅ PASSED | Calling `toggle()` on a simulated smart plug switches its state between ON and OFF correctly |
-| 7 | `test_event_payload_values` | ✅ PASSED | The JSON payload of a generated event contains the expected keys and value types for each device type (climate, power, motion) |
-| 8 | `test_status_payload_shape` | ✅ PASSED | The periodic device-status heartbeat payload has the correct structure (device_id, uptime, firmware, signal strength, etc.) |
-| 9 | `test_summary_aggregates_by_device_and_direction` | ✅ PASSED | `summarize()` correctly groups events by `(device_id, direction)` and counts them; the resulting aggregation matches the expected row count |
-| 10 | `test_log_command_records_operator` | ✅ PASSED | Operator commands (e.g. remotely toggling a device) are logged to the DB with the correct `operator` field — the audit trail is complete |
-| 11 | `test_anomaly_injectors_log_events_without_broker` | ✅ PASSED | `RateFloodInjector`, `PayloadBloatInjector`, and `RogueDeviceInjector` from `src/simulator/anomalies.py` all write events to the SQLite DB **without** requiring a live MQTT broker — they work in broker-less lab mode |
-
----
-
-## Benchmark Results (from `results/benchmark_ciciot_v1.md`)
-
-Evaluated on CICIoT2023 held-out test partition (seeded random sampling, `seed=0`):
-
-| Model | Precision | Recall | F1 | FPR |
-|---|---|---|---|---|
-| `rules` | — | — | 0.958 | — |
-| `rules_strict` | — | — | 0.439 | — |
-| `iforest` | — | — | 0.604 | — |
-| `baseline` | — | — | 0.926 | — |
-| `hybrid` | — | — | 0.956 | — |
-
-> Full confusion matrices and per-category recall are in [`results/benchmark_ciciot_v1.md`](benchmark_ciciot_v1.md).
-
----
-
-## Notes
-
-- **CICIoT2023 benchmark** (test 4-2) reads all 309 CSV files and dominates the total runtime (~220 s of the 227 s total).
-- All **Rozan/** files are excluded from tests and are never read, staged, or referenced.
-- The `.venv` uses Python 3.14.3; pytest-anyio and platformdirs plugins are present but not actively used by these tests.
-- Run with: `.venv\Scripts\python -m pytest tests -v`
+- **Verified execution:** the 71-test run above, plus a separate `run_lab_check(seed=0)` producing the window counts quoted in section 8.
+- **Not verified in this run:** live MQTT broker injection, live Groq/DeepSeek API calls (mocked or fallback paths only), and a live `demo.ps1` launch.
+- **User-edited H1 files:** `src/dashboard/static/index.html`, `src/loop/__init__.py`, and untracked `src/dashboard/static/image.png` were left for the user; the dashboard test exercises the server-side H3 behavior and the minimal L3/H3 changes already present in the working copy.

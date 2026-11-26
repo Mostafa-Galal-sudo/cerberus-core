@@ -1,6 +1,6 @@
 # CICIoT2023 benchmark — detection engine v1
 
-Generated 2026-11-26 14:51 UTC · dataset `data\raw\ciciot2023\CSV` (309 capture files) · seed 0
+Generated 2026-11-26 22:11 UTC · dataset `data\raw\ciciot2023\CSV` (309 capture files) · seed 0
 
 ## Protocol
 
@@ -78,8 +78,6 @@ Precision is reported at the test partition's sampling ratio, which over-represe
 .venv\Scripts\python -m src.evaluation.benchmark
 ```
 
-Dataset paths stay git-ignored; this report is versioned.
-
 ---
 
 ## Model Comparison & Verdict
@@ -88,47 +86,32 @@ Dataset paths stay git-ignored; this report is versioned.
 
 | Metric | Best | Runner-up | Third | Worst |
 |---|---|---|---|---|
-| **F1** | `rules` 0.958 | `hybrid` 0.956 | `baseline` 0.926 | `rules_strict` 0.439 |
-| **Recall** | `hybrid` 0.957 | `rules` 0.955 | `baseline` 0.867 | `rules_strict` 0.282 |
-| **Precision** | `rules_strict` 0.996 | `baseline` 0.994 | `iforest` 0.962 | `hybrid` 0.956 |
-| **FPR (lower=better)** | `rules_strict` 0.001 | `baseline` 0.005 | `iforest` 0.016 | `hybrid` 0.041 |
-| **Accuracy** | `rules` 0.960 | `hybrid` 0.958 | `baseline` 0.934 | `rules_strict` 0.654 |
-| **DDoS recall** | `rules` / `hybrid` 1.000 | `baseline` 0.906 | `iforest` 0.305 | `rules_strict` 0.438 |
-| **Mirai recall** | `hybrid` 1.000 | `baseline` 0.998 | `rules` 0.999 | `rules_strict` 0.001 |
-| **Recon recall** | `hybrid` 0.230 | `baseline` 0.195 | `rules` 0.172 | `rules_strict` 0.009 |
-| **Spoofing recall** | `iforest` 0.073 | `hybrid` 0.070 | `rules` 0.067 | `baseline` 0.005 |
+| f1 | `rules` 0.958 | `hybrid` 0.956 | `baseline` 0.926 | `rules_strict` 0.439 |
+| recall | `hybrid` 0.957 | `rules` 0.955 | `baseline` 0.867 | `rules_strict` 0.282 |
+| precision | `rules_strict` 0.996 | `baseline` 0.994 | `iforest` 0.962 | `hybrid` 0.956 |
+| fpr | `rules_strict` 0.001 | `baseline` 0.005 | `iforest` 0.016 | `hybrid` 0.041 |
+| accuracy | `rules` 0.960 | `hybrid` 0.958 | `baseline` 0.934 | `rules_strict` 0.654 |
 
-### Per-model verdict
+### Best recall per attack category
 
-| Model | Verdict | Best for | Watch out for |
-|---|---|---|---|
-| **`rules`** | **Best overall F1 & accuracy** | High-volume flooding attacks (DDoS, DoS, Mirai); when you need a fast, explainable decision with a simple reason list | Low-and-slow attacks (BruteForce, Recon, Web, Spoofing) where per-window features don't cross thresholds; not self-adapting |
-| **`rules_strict`** | **Best precision & lowest FPR** | Zero-tolerance deployments where every false positive has a high cost (e.g., auto-blocking critical infrastructure devices) | Catastrophic recall (28.2%) — misses 72% of all attacks; useless as a primary detector; pair only as a high-confidence escalation tier |
-| **`iforest`** | **Weakest anomaly model here** | Catching Spoofing (best recall 7.3%) and Mirai (92%) in unsupervised settings where no rules are available | Lowest recall (44.0%) among usable detectors; most sensitive to which benign capture it was trained on; needs re-fitting when traffic baseline drifts |
-| **`baseline`** | **Best precision-recall trade-off** | Quiet-precision deployments: high recall (86.7%) at a tiny 0.5% FPR; best Mirai/DoS coverage among anomaly-only models | Misses Spoofing almost entirely (0.5% recall) and Web attacks (0.8%); doesn't catch what the global distribution doesn't see |
-| **`hybrid`** | **Best recall; recommended for production** | End-to-end pipeline: rules fast-path catches flooding, deviation baseline catches quiet anomalies, fingerprint handles per-device drift, severity tier guides analyst triage | Highest FPR (4.1%) — the union of two detectors means more false positives; requires the full feature pipeline and training data for all three sub-models |
+| Category | Best detector | Recall |
+|---|---|---|
+| BruteForce | `iforest` | 0.053 |
+| DDoS | `hybrid` | 1.000 |
+| DoS | `hybrid` | 1.000 |
+| Mirai | `hybrid` | 1.000 |
+| Recon | `hybrid` | 0.230 |
+| Spoofing | `iforest` | 0.073 |
+| Web | `iforest` | 0.076 |
 
-### Category-level gaps (all models struggle here)
+### Reading the comparison
 
-| Attack category | Best recall | Best model | Why all models struggle |
-|---|---|---|---|
-| **BruteForce** | 5.3% | `iforest` | Low packet rates; looks like legitimate login traffic in a 60-second window |
-| **Web** | 7.6% | `iforest` | HTTP-layer attack; L3/L4 flow features used here don't expose application-layer patterns |
-| **Spoofing** | 7.3% | `iforest` | Per-flow features are almost identical to benign; detection needs per-device fingerprinting or sequence analysis |
-| **Recon** | 23.0% | `hybrid` | Slow scan rate blends into background; only slightly elevated entropy and connection diversity |
+- Highest F1: `rules` (0.958); highest recall: `hybrid` (0.957).
+- Lowest FPR: `rules_strict` (0.001); lowest recall: `rules_strict` (0.282).
+- `hybrid` is the recommended primary detector when recall and explainability matter; its union of rules and deviation raises FPR.
+- `rules_strict` is an escalation tier only: best precision and lowest FPR, but very low recall.
+- `iforest` and `baseline` are unsupervised cross-checks; neither sees the application-layer low-and-slow patterns exposed by these features.
 
-> [!TIP]
-> To close the BruteForce / Web / Spoofing gap in a future checkpoint: add sequence-aware features (inter-arrival time variance, unique-destination count, failed-connection ratio) or layer in a device-level fingerprint that flags per-device rate deviations — both of which are already partially scaffolded in `src/detection/fingerprint.py`.
+This section is generated by `render()` from the same results as the tables above.
 
-### Overall recommendation
-
-```
-Production deployment order:
-  1. hybrid        — primary detector (best recall, full explainability)
-  2. rules_strict  — escalation tier (high-confidence auto-block)
-  3. baseline      — fallback if rules are not applicable (unseen protocol)
-  4. iforest       — experimental / unsupervised cross-check only
-```
-
-The **hybrid** model is the recommended primary detector.  
-Its 95.7% recall / 95.6% F1 is statistically indistinguishable from the rule engine alone on flooding classes, while the deviation baseline branch adds meaningful coverage on Recon (+5.8 pp over rules) and near-perfect Mirai coverage — all with human-readable confidence scores and driver features for analyst triage.
+Dataset paths stay git-ignored; this report is versioned.

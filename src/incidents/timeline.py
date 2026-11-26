@@ -5,6 +5,7 @@ import sqlite3
 import uuid
 from typing import Any
 
+from src.policy import PolicyGate
 from src.storage.db import utc_now, write_lock
 
 from .schema import VALID_SEVERITIES, VALID_STATUSES, IncidentEvent, IncidentRecord
@@ -28,7 +29,16 @@ class IncidentStore:
         status: str = "open",
         initial_evidence: dict[str, Any] | None = None,
         incident_id: str | None = None,
+        *,
+        gate: PolicyGate,
+        actor: str,
     ) -> IncidentRecord:
+        gate.require(
+            actor,
+            "open_incident",
+            device_id,
+            context={"detection_ref": detection_ref, "severity": severity},
+        )
         if severity not in VALID_SEVERITIES:
             raise ValueError(f"invalid severity {severity!r}")
         if status not in VALID_STATUSES:

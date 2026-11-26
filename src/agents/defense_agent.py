@@ -166,7 +166,17 @@ class DefenseAgent:
         return {"error": f"unknown tool {name!r}"}
 
     def investigate(self, detection: dict[str, Any]) -> DefenseResult:
-        client = self._get_client()
+        try:
+            client = self._get_client()
+        except Exception as exc:
+            inc, iso = fallback_investigate(
+                self.conn,
+                self.gate,
+                self.incidents,
+                detection,
+                fingerprint=self.fingerprint,
+            )
+            return DefenseResult(mode="fallback", incident=inc, isolation=iso, error=str(exc))
         if client is None:
             inc, iso = fallback_investigate(
                 self.conn,
@@ -188,6 +198,8 @@ class DefenseAgent:
             severity=severity,
             detection_ref=detection_ref,
             initial_evidence=detection,
+            gate=self.gate,
+            actor="defense",
         )
 
         messages: list[dict[str, Any]] = [
@@ -266,8 +278,19 @@ class DefenseAgent:
                     incidents=self.incidents,
                 )
             else:
-                self.gate.authorize("defense", "log_alert", device_id, context={"incident_id": inc.id})
-                self.incidents.update_incident(inc.id, status="open", action="log_alert", outcome="logged")
+                alert_decision = self.gate.authorize(
+                    "defense", "log_alert", device_id, context={"incident_id": inc.id}
+                )
+                if alert_decision.allowed:
+                    self.incidents.update_incident(inc.id, status="open", action="log_alert", outcome="logged")
+                else:
+                    self.incidents.append_event(
+                        inc.id,
+                        kind="policy_denied",
+                        actor="defense",
+                        summary=f"log_alert denied for {device_id}: {alert_decision.reason}",
+                        details={"action": "log_alert", "reason": alert_decision.reason},
+                    )
 
             final_rec = self.incidents.get_record(inc.id)
             assert final_rec is not None

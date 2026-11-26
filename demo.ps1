@@ -8,7 +8,11 @@ $ErrorActionPreference = "Stop"
 $Root = $PSScriptRoot
 $Venv = Join-Path $Root ".venv\Scripts\python.exe"
 $DB   = Join-Path $Root "data\lab\lab_traffic.db"
-$Port = 8000
+$Port = if ($env:CERBERUS_PORT) { [int]$env:CERBERUS_PORT } else { 8000 }
+$TokenBytes = New-Object byte[] 32
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($TokenBytes)
+$Token = [Convert]::ToBase64String($TokenBytes)
 
 function Write-Step { param([string]$msg) Write-Host "" ; Write-Host "==> $msg" -ForegroundColor Cyan }
 function Write-Ok   { param([string]$msg) Write-Host "    [OK] $msg"  -ForegroundColor Green }
@@ -112,21 +116,32 @@ Write-Ok "Closed-loop complete"
 # ---- 4. Start the SOC dashboard (background) --------------------------------
 Write-Step "Starting Cerberus SOC Dashboard on http://localhost:$Port"
 
-$env:CERBERUS_DB_PATH = $DB
 $dashJob = Start-Job -ScriptBlock {
-    param($venv, $root, $port)
+    param($venv, $root, $port, $token, $db)
     Set-Location $root
-    & $venv -m uvicorn "src.dashboard:create_app" --factory --host 0.0.0.0 --port $port --no-access-log
-} -ArgumentList $Venv, $Root, $Port
+    $env:CERBERUS_DB_PATH = $db
+    $env:CERBERUS_DASHBOARD_TOKEN = $token
+    & $venv -m uvicorn "src.dashboard:create_app" --factory --host 127.0.0.1 --port $port --no-access-log
+} -ArgumentList $Venv, $Root, $Port, $Token, $DB
 
-Start-Sleep 3
-
-try {
-    $health = Invoke-RestMethod -Uri "http://localhost:$Port/api/health" -TimeoutSec 5
-    Write-Ok "Dashboard live -- total_events=$($health.total_events)  open_incidents=$($health.open_incidents)"
-} catch {
-    Write-Warn "Dashboard may still be starting. Open http://localhost:$Port manually."
+$ready = $false
+for ($i = 0; $i -lt 12; $i++) {
+    Start-Sleep 1
+    try {
+        $health = Invoke-RestMethod -Uri "http://localhost:$Port/api/health" -TimeoutSec 3
+        $ready = $true
+        break
+    } catch {
+    }
 }
+if (-not $ready) {
+    Write-Error "Dashboard failed health check on http://localhost:$Port"
+    Stop-Job $dashJob -ErrorAction SilentlyContinue
+    Remove-Job $dashJob -ErrorAction SilentlyContinue
+    exit 1
+}
+Write-Ok "Dashboard live -- total_events=$($health.total_events)  open_incidents=$($health.open_incidents)"
+Write-Ok "Release token (X-Cerberus-Token): $Token"
 
 # ---- 5. Done ----------------------------------------------------------------
 Write-Host ""

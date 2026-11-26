@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import os
 from contextlib import asynccontextmanager
@@ -8,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
 
 from src.incidents import IncidentStore
@@ -18,6 +19,17 @@ from src.simulator.devices import PROFILES
 from src.storage.db import get_db_path, open_db, total_events
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+
+def require_operator(
+    x_cerberus_token: str | None = Header(default=None, alias="X-Cerberus-Token"),
+) -> str:
+    configured = os.environ.get("CERBERUS_DASHBOARD_TOKEN")
+    if not configured:
+        raise HTTPException(status_code=503, detail="DASHBOARD_AUTH_NOT_CONFIGURED")
+    if not x_cerberus_token or not hmac.compare_digest(x_cerberus_token, configured):
+        raise HTTPException(status_code=401, detail="UNAUTHORIZED")
+    return "operator"
 
 
 def _build_snapshot(conn, gate: PolicyGate) -> dict[str, Any]:
@@ -174,15 +186,20 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         return {"count": len(items), "isolations": items}
 
     @app.post("/api/isolations/{device_id}/release")
-    def release_isolated_device(device_id: str, incident_id: str | None = None) -> dict[str, Any]:
+    def release_isolated_device(
+        device_id: str,
+        incident_id: str | None = None,
+        actor: str = Depends(require_operator),
+    ) -> dict[str, Any]:
         res = release_device(
             conn,
             gate,
             device_id,
-            actor="operator",
+            actor=actor,
             reason="dashboard manual release",
             incident_id=incident_id,
             incidents=incidents_store if incident_id else None,
+            context={"source": "dashboard", "authenticated": True},
         )
         if not res.decision.allowed:
             raise HTTPException(status_code=403, detail=res.decision.reason)
@@ -209,6 +226,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                     **_build_snapshot(conn, gate),
                     "incidents": incidents_store.list_incidents(limit=25),
                     "isolations": registry.list_isolations(limit=25),
+                    "audit": gate.audit.query(limit=100),
                 }
                 yield f"data: {json.dumps(payload)}\n\n"
                 if once:

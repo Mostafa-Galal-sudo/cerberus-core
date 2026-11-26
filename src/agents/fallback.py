@@ -32,6 +32,8 @@ def fallback_investigate(
         severity=severity,
         detection_ref=detection_ref,
         initial_evidence=detection,
+        gate=gate,
+        actor="defense",
     )
 
     ev_report = query_device_events(
@@ -77,13 +79,24 @@ def fallback_investigate(
             incidents=incidents,
         )
     else:
-        gate.authorize("defense", "log_alert", device_id, context={"incident_id": inc.id})
-        incidents.update_incident(
-            inc.id,
-            status="open",
-            action="log_alert",
-            outcome="logged",
+        alert_decision = gate.authorize(
+            "defense", "log_alert", device_id, context={"incident_id": inc.id}
         )
+        if alert_decision.allowed:
+            incidents.update_incident(
+                inc.id,
+                status="open",
+                action="log_alert",
+                outcome="logged",
+            )
+        else:
+            incidents.append_event(
+                inc.id,
+                kind="policy_denied",
+                actor="defense",
+                summary=f"log_alert denied for {device_id}: {alert_decision.reason}",
+                details={"action": "log_alert", "reason": alert_decision.reason},
+            )
 
     final_rec = incidents.get_record(inc.id)
     assert final_rec is not None

@@ -9,15 +9,23 @@ data/raw/
 data/processed/
 data/lab/
 *.db
+*.db-wal
+*.db-shm
 *.pcap
 *.pcapng
 
 # Model artifacts
 *.pkl
 *.joblib
+*.onnx
+*.pt
+*.h5
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Runtime output
+*.log
 
 # Local secrets - API keys live in .env, never in Git
 .env

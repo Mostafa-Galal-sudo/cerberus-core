@@ -47,7 +47,7 @@ src/simulator/traffic_gen.py  jittered MQTT publishes -> local Mosquitto
                                          payload_size, ..., direction)
 ```
 
-Future stages (planned, not built yet):
+Current build (Checkpoints 2-3):
 
 ```
 mqtt_events -> src/detection/features.py  -> rules | ML | fingerprint | hybrid
@@ -58,8 +58,12 @@ mqtt_events -> src/detection/features.py  -> rules | ML | fingerprint | hybrid
 
 ## Invariants
 
-1. **Policy gate.** Privileged actions (attack execution, isolation) route only
-   through `src/policy/` — allowlist + scope + rate limit + audit. No bypass path.
+1. **Policy gate.** Privileged actions (attack execution, incident opening,
+   isolation, release, alert logging) route only through `src/policy/` —
+   allowlist + scope + rate limit + audit. Execution primitives in
+   `src/simulator/anomalies.py`, `src/response/registry.py` and
+   `src/incidents/timeline.py` require an `ALLOW` decision, so there is no
+   direct call path around the gate.
 2. **Agents propose, policy disposes.** LLM output is never executed directly.
 3. **Deterministic fallback.** When LLM APIs fail or are rate-limited, the loop
    degrades to rules-only behavior and must not crash (Checkpoint 3 tests).
@@ -78,4 +82,4 @@ mqtt_events -> src/detection/features.py  -> rules | ML | fingerprint | hybrid
 | Response / policy | done (C3) — PolicyGate (allowlist, scope, ratelimit, audit) + simulated isolation |
 | Presentation | done (C3) — FastAPI + SSE SOC dashboard (CyFocus dark workspace) |
 
-Task-level plan: `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
+Task-level plan: `CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.

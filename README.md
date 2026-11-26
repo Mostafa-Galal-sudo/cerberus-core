@@ -13,7 +13,7 @@ ESP32-based IoT testbed.
 |---|---|---|---|
 | C1 — Foundation & data pipeline | 16-22 Nov | simulator + storage + CICIoT2023 EDA | complete |
 | C2 — Detection engine v1 + benchmark | 23-29 Nov | rules vs ML vs hybrid | complete |
-| C3 — Agents + response + dashboard | 30 Nov - 6 Dec | closed loop on simulated traffic | not started |
+| C3 — Agents + response + dashboard | 30 Nov - 6 Dec | closed loop on simulated traffic | complete (26 Nov) |
 | C4 — Real testbed + lab dataset | 7-13 Dec | ESP32 + AP + gap report | not started |
 | C5 — Closed loop on real testbed | 14-20 Dec | live demo + CIs | not started |
 | C6 — RF resilience (stretch) + final | 21-27 Dec | NRF24L01 or fallback + report | not started |
@@ -56,5 +56,10 @@ python -m src.simulator.traffic_gen
 
 ## Weekly plan and tasks
 
-See `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md` (34 tasks across 6 checkpoints,
+See `docs/CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md` (53 tasks across 6 checkpoints,
 critical path: C1-T05 -> C2-T07 -> C3-T08 -> C5-T01).
+
+`demo.ps1` is the only demo launcher. It binds the dashboard to `127.0.0.1`,
+uses `CERBERUS_PORT` if set (default 8000), and generates a
+`CERBERUS_DASHBOARD_TOKEN` printed at startup. The release button asks for this
+token once and caches it in `sessionStorage`.

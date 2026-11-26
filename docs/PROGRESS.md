@@ -1,7 +1,7 @@
 # PROGRESS — weekly log
 
 One entry per checkpoint: what shipped, evidence, what slipped.
-The task-level plan lives in `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
+The task-level plan lives in `CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 
 ## Checkpoint 1 — Foundation & Data Pipeline (16–22 Nov) — ✅ COMPLETE 17 Nov
 
@@ -14,7 +14,7 @@ The task-level plan lives in `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 | C1-T05 traffic generator | live run vs local broker, 262 events in 120 s | `src/simulator/traffic_gen.py` |
 | C1-T06 storage | SQLite `mqtt_events`, UTC ISO8601, 3 indexes, WAL | `src/storage/db.py` |
 | C1-T07 tests | 10/10 passing | commit `d2c4579` |
-| C1-T08 CICIoT2023 download | 310 files ~8.5 GB at `data/raw/ciciot2023/` | 46,776,700 rows counted in EDA |
+| C1-T08 CICIoT2023 download | 310 CSV files / 9.66 GB measured at `data/raw/ciciot2023/CSV/` | 46,776,700 rows counted in EDA |
 | C1-T09 EDA notebook | executed, all 8 sections, outputs saved | commit `75ce6f0`, `src/notebooks/01_ciciot_eda.ipynb` |
 | C1-T10 demo dry-run | one-command launcher `demo.ps1`, 4 terminals, interactive control | commit `c844ea6` + live run |
 
@@ -42,7 +42,7 @@ The task-level plan lives in `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 
 | Task | Result | Evidence |
 |------|--------|----------|
-| C2-T01 features | 13 sliding-window MQTT behavioral features | `src/detection/features.py` |
+| C2-T01 features | 14 sliding-window MQTT behavioral features | `src/detection/features.py` |
 | C2-T02 dataset loader | CICIoT2023 folder-label loader + file-level split | `src/detection/dataset.py` |
 | C2-T03 rules engine | `RuleEngine` (`ciciot` 8 rules, `mqtt` 6 rules) | `src/detection/rules_engine.py` |
 | C2-T04 ML model | `AnomalyModel` (Isolation Forest + IQR scaling) | `src/detection/ml_model.py` |
@@ -73,3 +73,5 @@ The task-level plan lives in `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 | C3-T06 response isolation | Simulated isolation + TTL expiry/step-down via `IsolationRegistry` | `src/response/`, `tests/test_response.py` |
 | C3-T07 SOC dashboard | FastAPI + SSE + CyFocus-styled dark SOC UI (KPIs, devices, incidents drawer, isolations, audit) | `src/dashboard/`, `tests/test_dashboard.py` |
 | C3-T09 fallback mode | Deterministic rules-only investigation & attack plan when LLM keys missing/rate-limited | `src/agents/fallback.py`, `tests/test_agents.py` |
+| C3-T08 closed loop | In-process attack -> detect -> defend runner + 10 integration tests | `src/loop/runner.py`, `tests/test_closed_loop.py`, commit `d8db434` |
+| C3-T10 E2E demo | Single `demo.ps1` launcher: seed traffic, run 3 loop cycles, start SOC dashboard | `demo.ps1`, commit `4acc5d0` |

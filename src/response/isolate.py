@@ -45,6 +45,7 @@ def isolate_device(
     registry = IsolationRegistry(conn)
     record = registry.activate(
         device_id,
+        decision=decision,
         reason=reason,
         actor=actor,
         ttl_sec=ttl_sec,
@@ -84,7 +85,7 @@ def release_device(
         return IsolationResult(executed=False, decision=decision, record=None)
 
     registry = IsolationRegistry(conn)
-    released_count = registry.release(device_id)
+    released_count = registry.release(device_id, decision=decision)
     if incidents is not None and incident_id is not None:
         incidents.append_event(
             incident_id,

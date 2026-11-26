@@ -56,7 +56,7 @@
 - **إيه اللي اتعمل؟** 10 unit tests بتتأكد من: إنشاء الجدول والـ indexes، حفظ واسترجاع الأحداث، التزام أحجام الـ payload بحدود كل `DeviceProfile`، سلوك السنسورز، و`db.summarize()`.
 
 ### `C1-T08` — CICIoT2023 Dataset Download (`data/raw/ciciot2023/CSV/`)
-- **إيه اللي اتعمل؟** تحميل الـ dataset (حوالي 8.5 GB، 309+ ملف CSV، ~46.7 مليون صف) متقسمة لفولدرات حسب نوع الهجوم + `Benign_Final/`.
+- **إيه اللي اتعمل؟** تحميل الـ dataset (310 ملف CSV / 9.66 GB مقيسين، ~46.7 مليون صف) متقسمة لفولدرات حسب نوع الهجوم + `Benign_Final/`.
 
 ### `C1-T09` — Exploratory Data Analysis (`src/notebooks/01_ciciot_eda.ipynb`)
 - **إيه اللي اتعمل؟** Notebook من 8 أقسام كشف حقائق مهمة جداً قبل كتابة موديلات الكشف:
@@ -130,4 +130,4 @@
 - **إيه اللي اتعمل؟**
   - `anomalies.py`: حقن 3 هجمات MQTT حقيقية على Mosquitto (`flood`, `bloat`, `rogue`).
   - `lab_check.py`: بيشغل فحص synthetic (`run_lab_check()`) وكمان فحص على قاعدة بيانات حقيقية (`evaluate_db()` على `data/lab/lab_traffic.db` مع `traffic_gen.py` + `anomalies.py`).
-  - `tests/`: تغطية كاملة بـ **38 unit & integration tests** (`test_traffic_gen.py`, `test_detection_data.py`, `test_detection_models.py`, `test_detection_hybrid.py`, `test_lab_detection.py`) — وكلهم **38/38 passed**.
+  - `tests/`: تغطية كاملة بـ **71 unit & integration tests** عبر 12 ملف، من ضمنهم اختبارات الـ policy gates والـ agents والـ dashboard. النتيجة المتحققة **71/71 passed** موثقة في `results/TEST_RESULTS.md`.

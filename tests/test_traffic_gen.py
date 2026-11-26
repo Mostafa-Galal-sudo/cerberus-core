@@ -3,6 +3,7 @@ import sqlite3
 
 import pytest
 
+from src.policy import PolicyDeniedError, PolicyGate
 from src.simulator import sensors
 from src.simulator.anomalies import inject_payload_bloat, inject_rate_flood, inject_rogue_device
 from src.simulator.devices import PROFILES
@@ -145,11 +146,23 @@ def test_log_command_records_operator(conn):
 
 
 def test_anomaly_injectors_log_events_without_broker(conn):
-    inject_rate_flood(None, conn, count=5, interval=0)
-    inject_payload_bloat(None, conn, count=2, interval=0, payload_size=1200)
-    inject_rogue_device(None, conn, count=3, interval=0)
+    gate = PolicyGate(conn=conn)
+    flood = gate.require("attack", "attack_flood", "esp32_temp_01", context={"topic": "lab/room1/climate"})
+    bloat = gate.require("attack", "attack_bloat", "esp32_plug_01", context={"topic": "lab/room1/power"})
+    rogue = gate.require("attack", "attack_rogue", "esp32_rogue_99", context={"topic": "lab/room9/unknown"})
+    inject_rate_flood(None, conn, count=5, interval=0, decision=flood)
+    inject_payload_bloat(None, conn, count=2, interval=0, payload_size=1200, decision=bloat)
+    inject_rogue_device(None, conn, count=3, interval=0, decision=rogue)
     assert db.total_events(conn) == 10
     max_bloat = conn.execute(
         "SELECT MAX(payload_size) FROM mqtt_events WHERE device_id = 'esp32_plug_01'"
     ).fetchone()[0]
     assert max_bloat >= 1200
+
+
+def test_anomaly_injector_rejects_denied_decision(conn):
+    gate = PolicyGate(conn=conn)
+    denied = gate.authorize("attack", "attack_flood", "unknown_prod_host")
+    with pytest.raises(PolicyDeniedError):
+        inject_rate_flood(None, conn, decision=denied, count=1, interval=0)
+    assert db.total_events(conn) == 0

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import sys
 from types import SimpleNamespace
 
 from src.agents import AttackAgent, DefenseAgent
 from src.incidents import IncidentStore
-from src.policy import PolicyGate
+from src.policy import PolicyGate, RateLimiter
 from src.response import IsolationRegistry
 from src.storage.db import open_db, save_event
 
@@ -166,5 +167,48 @@ def test_attack_agent_respects_policy_gate_and_injects_in_lab_scope(tmp_path):
         assert ok.mode == "llm"
         assert ok.executed is True
         assert ok.events_injected == 4
+    finally:
+        conn.close()
+
+
+def test_defense_agent_falls_back_on_sdk_import_failure(monkeypatch, tmp_path):
+    monkeypatch.setenv("GROQ_API_KEY", "broken-key")
+    monkeypatch.setitem(sys.modules, "groq", None)
+    conn = open_db(tmp_path / "sdk_def.db")
+    try:
+        _seed(conn)
+        res = DefenseAgent(conn, PolicyGate(conn=conn)).investigate(
+            {"device_id": "esp32_temp_01", "severity": "high"}
+        )
+        assert res.mode == "fallback"
+        assert res.error
+    finally:
+        conn.close()
+
+
+def test_attack_agent_falls_back_on_sdk_import_failure(monkeypatch, tmp_path):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "broken-key")
+    monkeypatch.setitem(sys.modules, "openai", None)
+    conn = open_db(tmp_path / "sdk_atk.db")
+    try:
+        mode, _plan, err = AttackAgent(conn, PolicyGate(conn=conn)).propose()
+        assert mode == "fallback"
+        assert err
+    finally:
+        conn.close()
+
+
+def test_log_alert_denial_is_not_recorded_as_logged(monkeypatch, tmp_path):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    conn = open_db(tmp_path / "alert_deny.db")
+    try:
+        _seed(conn)
+        gate = PolicyGate(conn=conn, ratelimiter=RateLimiter(limits={"log_alert": (0, 60.0)}))
+        res = DefenseAgent(conn, gate).investigate(
+            {"device_id": "esp32_temp_01", "severity": "low", "explanation": "low severity"}
+        )
+        assert res.mode == "fallback"
+        assert "policy_denied" in [e.kind for e in res.incident.timeline]
+        assert res.incident.outcome != "logged"
     finally:
         conn.close()

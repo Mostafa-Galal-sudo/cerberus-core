@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from src.incidents import IncidentStore
-from src.policy import PolicyGate
+from src.policy import PolicyDeniedError, PolicyGate
 from src.response import IsolationRegistry, isolate_device, release_device
 from src.storage.db import open_db
 
@@ -11,7 +13,9 @@ def test_isolate_and_release_require_policy_and_update_incident(tmp_path):
     try:
         gate = PolicyGate(conn=conn)
         incidents = IncidentStore(conn)
-        inc = incidents.create_incident("esp32_temp_01", "high", "det-42")
+        inc = incidents.create_incident(
+            "esp32_temp_01", "high", "det-42", gate=gate, actor="defense"
+        )
 
         # Attack actor must be denied
         denied = isolate_device(
@@ -63,6 +67,26 @@ def test_isolate_and_release_require_policy_and_update_incident(tmp_path):
             "isolation",
             "release",
         ]
+    finally:
+        conn.close()
+
+
+def test_registry_rejects_execution_without_allow_decision(tmp_path):
+    conn = open_db(tmp_path / "registry_gate.db")
+    try:
+        gate = PolicyGate(conn=conn)
+        denied = gate.authorize("attack", "isolate_device", "esp32_temp_01")
+        reg = IsolationRegistry(conn)
+        with pytest.raises(PolicyDeniedError):
+            reg.activate(
+                "esp32_temp_01",
+                decision=denied,
+                reason="bypass attempt",
+                actor="attack",
+            )
+        with pytest.raises(PolicyDeniedError):
+            reg.release("esp32_temp_01", decision=denied)
+        assert reg.list_isolations() == []
     finally:
         conn.close()
 

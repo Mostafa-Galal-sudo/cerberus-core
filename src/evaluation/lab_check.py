@@ -12,6 +12,7 @@ from src.detection.hybrid import HybridDetector
 from src.storage import db
 
 BASE = datetime(2026, 11, 26, 9, 0, tzinfo=timezone.utc)
+WINDOW_SEC = 60.0
 TRAIN_END = 1800.0
 NORMAL_END = 2400.0
 ANOMALY_END = 2520.0
@@ -62,9 +63,10 @@ def run_lab_check(seed=0, workdir=None):
     frame = pd.DataFrame(rows)
     offset = frame["window_start"] - BASE.timestamp()
 
-    train_mask = offset < TRAIN_END
-    normal_mask = (offset >= TRAIN_END) & (offset < NORMAL_END)
-    anomaly_mask = offset >= NORMAL_END
+    window_end = offset + WINDOW_SEC
+    train_mask = window_end <= TRAIN_END
+    normal_mask = (offset >= TRAIN_END) & (window_end <= NORMAL_END)
+    anomaly_mask = (offset >= NORMAL_END) & (window_end <= ANOMALY_END)
 
     train_frame = frame[train_mask].reset_index(drop=True)
     fingerprint = DeviceFingerprint().fit(train_frame.to_dict("records"))
@@ -124,7 +126,9 @@ def evaluate_db(db_path, split_ts, min_events=4):
 
     frame = pd.DataFrame(rows)
     split_epoch = datetime.fromisoformat(split_ts).timestamp()
-    train_frame = frame[frame["window_start"] < split_epoch].reset_index(drop=True)
+    train_frame = frame[
+        frame["window_start"] + WINDOW_SEC <= split_epoch
+    ].reset_index(drop=True)
     test_frame = frame[frame["window_start"] >= split_epoch].reset_index(drop=True)
 
     fingerprint = DeviceFingerprint().fit(train_frame.to_dict("records"))

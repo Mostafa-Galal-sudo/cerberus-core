@@ -4,6 +4,7 @@ import sqlite3
 import pytest
 
 from src.simulator import sensors
+from src.simulator.anomalies import inject_payload_bloat, inject_rate_flood, inject_rogue_device
 from src.simulator.devices import PROFILES
 from src.simulator.traffic_gen import (
     climate_payload,
@@ -138,3 +139,14 @@ def test_log_command_records_operator(conn):
     row = conn.execute("SELECT * FROM mqtt_events").fetchone()
     assert row["device_id"] == "operator"
     assert row["direction"] == "subscribe"
+
+
+def test_anomaly_injectors_log_events_without_broker(conn):
+    inject_rate_flood(None, conn, count=5, interval=0)
+    inject_payload_bloat(None, conn, count=2, interval=0, payload_size=1200)
+    inject_rogue_device(None, conn, count=3, interval=0)
+    assert db.total_events(conn) == 10
+    max_bloat = conn.execute(
+        "SELECT MAX(payload_size) FROM mqtt_events WHERE device_id = 'esp32_plug_01'"
+    ).fetchone()[0]
+    assert max_bloat >= 1200

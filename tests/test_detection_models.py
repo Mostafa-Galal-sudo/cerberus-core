@@ -92,3 +92,29 @@ def test_split_covers_single_file_folders_in_test():
     assert "web.csv" in set(test["source_file"])
     assert len(train) > 0
     assert set(train["source_file"]).isdisjoint(set(test["source_file"]))
+
+
+def test_rule_engine_mqtt_feature_set():
+    rng = np.random.default_rng(0)
+    benign = pd.DataFrame({
+        "rate_per_sec": rng.uniform(0.08, 0.12, 100),
+        "gap_mean": rng.uniform(8.0, 12.0, 100),
+        "payload_max": rng.uniform(170.0, 190.0, 100),
+        "payload_std": rng.uniform(0.0, 3.0, 100),
+        "topic_count": np.ones(100),
+        "gap_cv": rng.uniform(0.01, 0.1, 100),
+    })
+    engine = RuleEngine(feature_set="mqtt").fit(benign)
+    attack = pd.DataFrame({
+        "rate_per_sec": [5.0],
+        "gap_mean": [0.2],
+        "payload_max": [1200.0],
+        "payload_std": [50.0],
+        "topic_count": [1.0],
+        "gap_cv": [0.05],
+    })
+    preds, hits, reasons = engine.predict(attack)
+    assert preds[0] == 1
+    assert hits[0] >= 3
+    assert "rate_spike" in reasons[0]
+    assert "payload_bloat" in reasons[0]

@@ -69,10 +69,14 @@ def drop_constant_features(df, protected=("category", "is_attack", "source_file"
     return df.drop(columns=constant)
 
 
-def split_by_file(df, test_fraction=0.3, seed=0):
-    files = sorted(df["source_file"].unique())
-    rng = pd.Series(files).sample(frac=1.0, random_state=seed).tolist()
-    n_test = max(1, int(len(rng) * test_fraction))
-    test_files = set(rng[:n_test])
+def split_by_file(df, test_fraction=0.3, seed=0, stratify_on="source_folder"):
+    test_files = set()
+    for _, group in df.groupby(stratify_on):
+        files = sorted(group["source_file"].unique())
+        shuffled = pd.Series(files).sample(frac=1.0, random_state=seed).tolist()
+        n_test = max(1, int(round(len(shuffled) * test_fraction)))
+        if n_test >= len(shuffled) and len(shuffled) > 1:
+            n_test = len(shuffled) - 1
+        test_files.update(shuffled[:n_test])
     mask = df["source_file"].isin(test_files)
     return df.loc[~mask].reset_index(drop=True), df.loc[mask].reset_index(drop=True)

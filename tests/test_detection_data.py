@@ -54,6 +54,7 @@ def test_sample_loads_both_classes_and_drops_constants():
 def test_split_never_shares_a_capture_file():
     df = pd.DataFrame({
         "source_file": ["a.csv"] * 10 + ["b.csv"] * 10 + ["c.csv"] * 10 + ["d.csv"] * 10,
+        "source_folder": ["DDoS"] * 20 + ["Web"] * 20,
         "value": range(40),
     })
     train, test = split_by_file(df, test_fraction=0.5, seed=1)

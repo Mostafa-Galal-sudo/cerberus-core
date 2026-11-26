@@ -1,112 +1,144 @@
-# demo.ps1 — CERBERUS Checkpoint 1 live demo launcher
-# Usage:
-#   powershell -ExecutionPolicy Bypass -File .\demo.ps1
-#   powershell -ExecutionPolicy Bypass -File .\demo.ps1 -Duration 600
-#
-# Opens 4 windows:
-#   T1 broker      : mosquitto -c mosquitto.conf -v
-#   T2 viewer      : mosquitto_sub -t 'lab/#' -v   (also shows retained status at start)
-#   T3 generator   : traffic_gen --duration N      (prints summary JSON when it ends)
-#   T4 control     : ENTER toggles the plug, S prints DB summary, Q quits
+﻿# ============================================================
+#  Cerberus-Core  —  E2E Demo Script  (C3-T10)
+#  Run: .\demo.ps1
+#  Works in fallback mode (no API keys needed).
+# ============================================================
 
-param(
-    [int]$Duration = 300
-)
+$ErrorActionPreference = "Stop"
+$Root  = $PSScriptRoot
+$Venv  = "$Root\.venv\Scripts\python.exe"
+$DB    = "$Root\data\lab\lab_traffic.db"
+$Port  = 8000
 
-$ErrorActionPreference = 'Stop'
+function Write-Step { param([string]$msg) Write-Host "`n==> $msg" -ForegroundColor Cyan }
+function Write-Ok   { param([string]$msg) Write-Host "    [OK] $msg"   -ForegroundColor Green }
+function Write-Warn { param([string]$msg) Write-Host "    [!!] $msg"   -ForegroundColor Yellow }
 
-$repo    = 'F:\UserData\Downloads\Cerberus\cerberus-core'
-$mosqDir = 'C:\Program Files\mosquitto'
-$mosq    = Join-Path $mosqDir 'mosquitto.exe'
-$sub     = Join-Path $mosqDir 'mosquitto_sub.exe'
-$pub     = Join-Path $mosqDir 'mosquitto_pub.exe'
-$py      = Join-Path $repo '.venv\Scripts\python.exe'
-$conf    = Join-Path $repo 'mosquitto.conf'
-$db      = Join-Path $repo 'data\lab\lab_traffic.db'
-
-# ---------- pre-flight ----------
-$missing = @($mosq, $sub, $pub, $py) | Where-Object { -not (Test-Path $_) }
-if ($missing) {
-    Write-Host "[X] missing files:" -ForegroundColor Red
-    $missing | ForEach-Object { Write-Host "    $_" }
+# ---- 0. Sanity checks -------------------------------------------------------
+Write-Step "Cerberus-Core Demo — C3 Closed-Loop"
+if (-not (Test-Path $Venv)) {
+    Write-Error "Virtual env not found at $Venv. Run: python -m venv .venv && .venv\Scripts\pip install -e .[dev]"
     exit 1
 }
-if (-not (Test-Path (Join-Path $repo 'requirements.txt'))) {
-    Write-Host "[X] repo not found at $repo" -ForegroundColor Red
-    exit 1
-}
+if ($env:GROQ_API_KEY) { Write-Ok "GROQ_API_KEY detected — LLM mode (live)" }
+else                    { Write-Warn "GROQ_API_KEY not set — running in deterministic fallback mode" }
+if ($env:DEEPSEEK_API_KEY) { Write-Ok "DEEPSEEK_API_KEY detected" }
 
-# is something already listening on 1883?
-$portBusy = $false
+# ---- 1. Ensure DB directory exists ------------------------------------------
+Write-Step "Preparing database"
+New-Item -ItemType Directory -Force -Path (Split-Path $DB) | Out-Null
+Write-Ok "DB path: $DB"
+
+# ---- 2. Seed 60 s of normal traffic (in-process, no broker) ----------------
+Write-Step "Seeding 60 seconds of normal IoT traffic (5 core devices)"
+& $Venv -c @"
+import sys, time
+sys.path.insert(0, r'$Root')
+from src.storage.db import open_db, save_event, utc_now
+from src.simulator.devices import _CORE_PROFILES
+
+conn = open_db(r'$DB')
+import json, random
+for i in range(300):                      # 300 events ~ 60 s of a 10-Hz mix
+    p = random.choice(_CORE_PROFILES)
+    save_event(conn, {
+        'ts_utc':          utc_now(),
+        'device_id':       p.device_id,
+        'device_type':     p.device_type,
+        'topic':           p.topics_publish[0],
+        'qos':             p.qos,
+        'payload_size':    random.randint(*p.payload_size_range),
+        'payload_preview': json.dumps({'seq': i, 'demo': True}),
+        'direction':       'publish',
+    })
+n = conn.execute('SELECT COUNT(*) FROM mqtt_events').fetchone()[0]
+print(f'  Seeded {n} events into DB.')
+"@
+Write-Ok "Normal traffic seeded"
+
+# ---- 3. Run the closed loop (3 attack → detect → defend cycles) -------------
+Write-Step "Running 3 closed-loop cycles (attack → detect → defend)"
+& $Venv -c @"
+import sys, logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
+sys.path.insert(0, r'$Root')
+from src.loop.runner import make_loop
+
+events = []
+lp = make_loop(db_path=r'$DB', on_event=events.append)
+results = lp.run(cycles=3, interval=0.5, attack_count=20)
+
+for r in results:
+    atk = r.attack
+    defense = r.defense
+    iso_msg = ''
+    if defense and defense.isolation and defense.isolation.executed:
+        iso_msg = f'  ISOLATED: {defense.incident.device_id}'
+    print(
+        f'  Cycle {r.cycle}: attack={atk.mode} injected={atk.events_injected}'
+        f'  detections={len(r.detections)}'
+        f'  incident={defense.incident.id if defense else "none"}'
+        f'  status={defense.incident.status if defense else "none"}'
+        + iso_msg
+    )
+
+# Summary
+total_inc = lp.incidents.conn.execute(\"SELECT COUNT(*) FROM incidents\").fetchone()[0]
+total_ev  = lp.conn.execute(\"SELECT COUNT(*) FROM mqtt_events\").fetchone()[0]
+print(f'\n  Total events in DB : {total_ev}')
+print(f'  Total incidents    : {total_inc}')
+print(f'  Callback events    : {len(events)}')
+"@
+Write-Ok "Closed-loop complete"
+
+# ---- 4. Start the SOC dashboard (background) --------------------------------
+Write-Step "Starting Cerberus SOC Dashboard on http://localhost:$Port"
+
+$dashJob = Start-Job -ScriptBlock {
+    param($venv, $root, $port, $db)
+    Set-Location $root
+    $env:CERBERUS_DB_PATH = $db
+    & $venv -m uvicorn "src.dashboard:create_app" --factory --host 0.0.0.0 --port $port --no-access-log 2>&1
+} -ArgumentList $Venv, $Root, $Port, $DB
+
+# Give uvicorn 3 s to start
+Start-Sleep 3
+
+# Quick health check
 try {
-    $tcp = New-Object System.Net.Sockets.TcpClient
-    $async = $tcp.BeginConnect('127.0.0.1', 1883, $null, $null)
-    if ($async.AsyncWaitHandle.WaitOne(500)) { $portBusy = $tcp.Connected }
-    $tcp.Close()
-} catch { }
-
-function Start-Term {
-    param([string]$Title, [string]$Command)
-    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
-    Start-Process powershell -WorkingDirectory $repo -ArgumentList @('-NoExit', '-EncodedCommand', $enc) | Out-Null
-    Write-Host "[+] opened: $Title"
+    $health = Invoke-RestMethod -Uri "http://localhost:$Port/api/health" -TimeoutSec 5
+    Write-Ok "Dashboard live — total_events=$($health.total_events)  open_incidents=$($health.open_incidents)"
+} catch {
+    Write-Warn "Dashboard may still be starting. Check http://localhost:$Port manually."
 }
 
-# ---------- T1: broker ----------
-if ($portBusy) {
-    Write-Host "[!] port 1883 already busy, assuming broker is already running, skipping T1"
-} else {
-    if (Test-Path $conf) {
-        Start-Term 'T1 broker (mosquitto.conf)' "& '$mosq' -c '$conf' -v"
-    } else {
-        Write-Host "[!] mosquitto.conf not found in repo, starting broker without -c"
-        Start-Term 'T1 broker (no conf)' "& '$mosq' -v"
+# ---- 5. Done ----------------------------------------------------------------
+Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "  Cerberus-Core SOC Dashboard:" -ForegroundColor White
+Write-Host "    http://localhost:$Port" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  API endpoints:" -ForegroundColor White
+Write-Host "    /api/health      — system health + KPIs" -ForegroundColor Gray
+Write-Host "    /api/overview    — device grid + KPIs" -ForegroundColor Gray
+Write-Host "    /api/incidents   — all incidents" -ForegroundColor Gray
+Write-Host "    /api/isolations  — isolation registry" -ForegroundColor Gray
+Write-Host "    /api/audit       — policy audit log" -ForegroundColor Gray
+Write-Host "    /api/stream      — SSE live feed" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  Press Ctrl+C to stop the dashboard." -ForegroundColor White
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Keep script alive until Ctrl+C, then clean up
+try {
+    while ($true) {
+        Start-Sleep 2
+        # Print job output lines as they arrive
+        Receive-Job $dashJob | ForEach-Object { Write-Host "  [dash] $_" -ForegroundColor DarkGray }
     }
-    Start-Sleep -Seconds 2
+} finally {
+    Stop-Job  $dashJob -ErrorAction SilentlyContinue
+    Remove-Job $dashJob -ErrorAction SilentlyContinue
+    Write-Host "`nDashboard stopped." -ForegroundColor Yellow
 }
-
-# ---------- T2: live viewer ----------
-Start-Term 'T2 viewer (lab/#)' "& '$sub' -t 'lab/#' -v"
-Start-Sleep -Milliseconds 500
-
-# ---------- T3: traffic generator ----------
-Start-Term "T3 generator ($Duration s)" "& '$py' -m src.simulator.traffic_gen --duration $Duration"
-
-# ---------- T4: interactive control ----------
-# Single-quoted here-string + placeholders, so nothing is interpolated here;
-# every __TOKEN__ is replaced with a real path below.
-$ctrlTemplate = @'
-$pub  = '__PUB__'
-$py   = '__PY__'
-$repo = '__REPO__'
-$db   = '__DB__'
-Write-Host 'ENTER = toggle plug    S = DB summary    Q = quit' -ForegroundColor Cyan
-while ($true) {
-    $k = (Read-Host '>').Trim().ToLower()
-    if ($k -eq 'q') { break }
-    elseif ($k -eq 's') {
-        & $py -c 'import json,sys; sys.path.insert(0,"__REPO_F__"); from src.storage import db; print(json.dumps(db.summarize(db.open_db("__DB_F__")), indent=2))'
-    }
-    else {
-        & $pub -t 'lab/room1/cmd' -m '{"action":"toggle"}' -q 1
-        Write-Host '-> toggle sent (plug publishes within 14-16 s, watch plug_state + power jump)'
-    }
-}
-'@
-
-$repl = [ordered]@{
-    '__PUB__'    = $pub
-    '__PY__'     = $py
-    '__REPO_F__' = ($repo -replace '\\', '/')
-    '__DB_F__'   = ($db -replace '\\', '/')
-    '__REPO__'   = $repo
-    '__DB__'     = $db
-}
-$ctrl = $ctrlTemplate
-foreach ($k in $repl.Keys) { $ctrl = $ctrl.Replace($k, $repl[$k]) }
-
-Start-Term 'T4 control' $ctrl
-
-Write-Host ''
-Write-Host "Demo launched. Generator window closes its run after $Duration s and prints the summary."
-Write-Host 'Close each window manually when done (T4: press Q to exit its loop).'

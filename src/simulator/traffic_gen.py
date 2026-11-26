@@ -34,6 +34,8 @@ def init_state(profiles):
             state["sensors"][p.device_id] = sensors.ClimateSensor(base, 52.0 if p.room == "room1" else 44.0)
         elif p.device_type == "plug":
             state["sensors"][p.device_id] = sensors.PowerSensor()
+        elif p.device_type == "motor":
+            state["sensors"][p.device_id] = sensors.MotorSensor()
     return state
 
 
@@ -66,6 +68,12 @@ def plug_payload(profile, seq, state, now):
     changed = state["last_state"][profile.device_id] not in (None, plug_state)
     state["last_state"][profile.device_id] = plug_state
     return finish(profile, body, now), changed, plug_state
+
+
+def motor_payload(profile, seq, state, now):
+    rpm, temp_c, motor_state = state["sensors"][profile.device_id].read()
+    body = {"device_id": profile.device_id, "seq": seq, "rpm": rpm, "temp_c": temp_c, "state": motor_state}
+    return finish(profile, body, now)
 
 
 def event_payload(profile, seq, state, now, value):
@@ -180,6 +188,11 @@ def publish_periodic(client, conn, profile, state, seq, now):
             state_raw = json.dumps({"device_id": profile.device_id, "state": plug_state}, separators=(",", ":")).encode()
             client.publish(state_topic, state_raw, qos=1, retain=True)
             log_publish(conn, profile, state_topic, state_raw, 1)
+    elif profile.device_type == "motor":
+        raw = motor_payload(profile, seq, state, now)
+        topic = profile.topics_publish[0]
+        client.publish(topic, raw, qos=profile.qos)
+        log_publish(conn, profile, topic, raw, profile.qos)
 
 
 def handle_pending(client, conn, state, now):

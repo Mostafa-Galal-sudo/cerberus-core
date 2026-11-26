@@ -11,6 +11,7 @@ from src.simulator.traffic_gen import (
     event_payload,
     init_state,
     log_command,
+    motor_payload,
     plug_payload,
     status_payload,
 )
@@ -62,6 +63,8 @@ def test_payload_sizes_stay_in_profile_range(state):
                 raw = climate_payload(p, i, state, 0.0)
             elif p.device_type == "plug":
                 raw = plug_payload(p, i, state, 0.0)[0]
+            elif p.device_type == "motor":
+                raw = motor_payload(p, i, state, 0.0)
             else:
                 value = {"motion": 1, "door": "open"}[p.device_type]
                 raw = event_payload(p, i, state, 0.0, value)

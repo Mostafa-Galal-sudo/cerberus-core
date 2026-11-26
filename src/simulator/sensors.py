@@ -34,6 +34,25 @@ class PowerSensor:
         return round(watts, 1), ("on" if self.on else "off")
 
 
+class MotorSensor:
+    def __init__(self, base_rpm=1450):
+        self.base_rpm = base_rpm
+        self.running = random.random() < 0.7
+        self.rpm = base_rpm if self.running else 0
+        self.temp_c = 38.0
+
+    def read(self):
+        if random.random() < 0.02:
+            self.running = not self.running
+        if self.running:
+            self.rpm = max(200, int(self.base_rpm + random.gauss(0, 35)))
+            self.temp_c += random.gauss(0, 0.25) + (46.0 - self.temp_c) * 0.05
+        else:
+            self.rpm = 0
+            self.temp_c += random.gauss(0, 0.15) + (26.0 - self.temp_c) * 0.05
+        return self.rpm, round(self.temp_c, 1), ("running" if self.running else "idle")
+
+
 class RssiWalk:
     def __init__(self):
         self.dbm = random.randint(-65, -45)

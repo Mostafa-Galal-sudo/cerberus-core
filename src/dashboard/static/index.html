@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cerberus SOC · CyFocus Workspace</title>
+  <style>
+    :root {
+      --bg: #070505;
+      --surface: #110D0D;
+      --card: #171212;
+      --card-hover: #1E1717;
+      --border: #2C2423;
+      --border-muted: #5B5554;
+      --text: #F2ECEA;
+      --text-soft: #D0C4C0;
+      --text-muted: #A2847B;
+      --red: #A20903;
+      --red-dark: #5C1811;
+      --green: #26502B;
+      --green-bright: #6EE787;
+      --amber: #B35537;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(7, 5, 5, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      display: grid; place-items: center; font-weight: 800; font-size: 15px;
+      box-shadow: 0 0 18px rgba(162, 9, 3, 0.45);
+    }
+    .brand h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+    .brand span { font-size: 12px; color: var(--text-muted); display: block; }
+    .header-pills { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .pill {
+      font-size: 12px; padding: 4px 10px; border-radius: 999px;
+      background: var(--card); border: 1px solid var(--border); color: var(--text-soft);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-bright); }
+    .dot.amber { background: var(--amber); }
+    .dot.red { background: var(--red); }
+
+    main { max-width: 1400px; margin: 0 auto; padding: 24px 28px 48px; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      transition: border-color 0.15s ease;
+    }
+    .kpi:hover { border-color: var(--border-muted); }
+    .kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .kpi-val { font-size: 28px; font-weight: 700; margin-top: 6px; color: var(--text); }
+    .kpi.alert { border-left: 3px solid var(--red); }
+    .kpi.ok { border-left: 3px solid var(--green); }
+    .kpi.warn { border-left: 3px solid var(--amber); }
+
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab {
+      background: var(--surface); color: var(--text-soft);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .tab.active { background: var(--red-dark); border-color: var(--red); color: var(--text); }
+
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    input, select {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 11px; font-size: 13px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--amber); }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 12px 16px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-soft); vertical-align: middle; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover td { background: var(--card-hover); }
+
+    .badge {
+      display: inline-block; padding: 3px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .sev-critical, .sev-high, .st-isolated, .verdict-DENY {
+      background: var(--red-dark); color: #FCA5A5; border: 1px solid var(--red);
+    }
+    .sev-medium, .st-alerting, .st-investigating, .st-open {
+      background: rgba(179, 85, 55, 0.22); color: #FDBA74; border: 1px solid var(--amber);
+    }
+    .sev-low, .st-healthy, .st-mitigated, .st-resolved, .verdict-ALLOW {
+      background: rgba(38, 80, 43, 0.45); color: var(--green-bright); border: 1px solid var(--green);
+    }
+    .st-released, .st-expired {
+      background: var(--card); color: var(--text-muted); border: 1px solid var(--border-muted);
+    }
+
+    .btn {
+      background: var(--red-dark); color: var(--text);
+      border: 1px solid var(--red); border-radius: 7px;
+      padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover { background: var(--red); }
+
+    .empty { padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+    /* Side Drawer */
+    .drawer-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65);
+      display: none; justify-content: flex-end; z-index: 50;
+    }
+    .drawer-backdrop.open { display: flex; }
+    .drawer {
+      width: min(520px, 100vw); height: 100%;
+      background: var(--surface); border-left: 1px solid var(--border);
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+    .drawer-head {
+      position: sticky; top: 0; background: var(--card);
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .drawer-body { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .meta-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .meta-box label { font-size: 11px; color: var(--text-muted); display: block; }
+    .meta-box div { font-size: 13px; color: var(--text); margin-top: 2px; word-break: break-word; }
+
+    .timeline { display: flex; flex-direction: column; gap: 12px; border-left: 2px solid var(--border); padding-left: 16px; }
+    .tl-item { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+    .tl-item::before {
+      content: ""; position: absolute; left: -22px; top: 14px;
+      width: 10px; height: 10px; border-radius: 50%; background: var(--amber); border: 2px solid var(--bg);
+    }
+    .tl-item.isolation::before { background: var(--red); }
+    .tl-item.release::before { background: var(--green-bright); }
+    .tl-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    pre {
+      margin-top: 6px; padding: 8px; border-radius: 6px;
+      background: var(--bg); color: var(--text-soft);
+      font-size: 11px; overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div>
+        <h1>CERBERUS SOC</h1>
+        <span>IoT Security Operations · CyFocus Workspace</span>
+      </div>
+    </div>
+    <div class="header-pills">
+      <span class="pill"><span class="dot" id="sse-dot"></span>Live Stream</span>
+      <span class="pill" id="groq-pill">Groq: --</span>
+      <span class="pill" id="deepseek-pill">DeepSeek: --</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">MQTT Events</div><div class="kpi-val" id="k-events">0</div></div>
+      <div class="kpi alert"><div class="kpi-label">Open Incidents</div><div class="kpi-val" id="k-open">0</div></div>
+      <div class="kpi ok"><div class="kpi-label">Mitigated</div><div class="kpi-val" id="k-mitigated">0</div></div>
+      <div class="kpi warn"><div class="kpi-label">Active Isolations</div><div class="kpi-val" id="k-iso">0</div></div>
+      <div class="kpi alert"><div class="kpi-label">Policy Denies</div><div class="kpi-val" id="k-denies">0</div></div>
+    </section>
+
+    <div class="toolbar">
+      <div class="tabs">
+        <button class="tab active" data-tab="incidents">Incidents</button>
+        <button class="tab" data-tab="devices">Devices</button>
+        <button class="tab" data-tab="isolations">Isolations</button>
+        <button class="tab" data-tab="audit">Policy Audit</button>
+      </div>
+      <div class="filters">
+        <input id="search-box" type="search" placeholder="Filter device, ID, summary..." />
+        <select id="severity-filter">
+          <option value="">All severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel" id="view-panel"></div>
+  </main>
+
+  <div class="drawer-backdrop" id="drawer-backdrop">
+    <div class="drawer">
+      <div class="drawer-head">
+        <div>
+          <strong id="d-title">Incident</strong>
+          <div style="font-size:12px;color:var(--text-muted)" id="d-sub"></div>
+        </div>
+        <button class="tab" id="d-close">Close</button>
+      </div>
+      <div class="drawer-body" id="d-body"></div>
+    </div>
+  </div>
+
+  <script>
+    let activeTab = "incidents";
+    let state = { kpis: {}, devices: [], incidents: [], isolations: [], audit: [] };
+
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    async function loadHealth() {
+      const h = await fetch("/api/health").then((r) => r.json());
+      document.getElementById("groq-pill").textContent = `Groq: ${h.llm_mode.groq}`;
+      document.getElementById("deepseek-pill").textContent = `DeepSeek: ${h.llm_mode.deepseek}`;
+    }
+
+    async function refreshAll() {
+      const [ov, inc, iso, aud] = await Promise.all([
+        fetch("/api/overview").then((r) => r.json()),
+        fetch("/api/incidents").then((r) => r.json()),
+        fetch("/api/isolations").then((r) => r.json()),
+        fetch("/api/audit").then((r) => r.json()),
+      ]);
+      state = { kpis: ov.kpis, devices: ov.devices, incidents: inc.incidents, isolations: iso.isolations, audit: aud.audit };
+      render();
+    }
+
+    function renderKpis() {
+      const k = state.kpis || {};
+      document.getElementById("k-events").textContent = k.total_events ?? 0;
+      document.getElementById("k-open").textContent = k.open_incidents ?? 0;
+      document.getElementById("k-mitigated").textContent = k.mitigated_incidents ?? 0;
+      document.getElementById("k-iso").textContent = k.active_isolations ?? 0;
+      document.getElementById("k-denies").textContent = k.policy_denies ?? 0;
+    }
+
+    function render() {
+      renderKpis();
+      const q = document.getElementById("search-box").value.trim().toLowerCase();
+      const sev = document.getElementById("severity-filter").value;
+      const panel = document.getElementById("view-panel");
+
+      if (activeTab === "incidents") {
+        const rows = state.incidents.filter((i) =>
+          (!sev || i.severity === sev) &&
+          (!q || i.device_id.toLowerCase().includes(q) || i.id.toLowerCase().includes(q) || (i.reasoning_summary || "").toLowerCase().includes(q))
+        );
+        if (!rows.length) { panel.innerHTML = `<div class="empty">No incidents recorded yet.</div>`; return; }
+        panel.innerHTML = `<table><thead><tr><th>ID</th><th>Device</th><th>Severity</th><th>Status</th><th>Decision</th><th>Updated (UTC)</th></tr></thead><tbody>${
+          rows.map((i) => `<tr class="clickable" onclick="openIncident('${esc(i.id)}')">
+            <td><code>${esc(i.id)}</code></td>
+            <td>${esc(i.device_id)}</td>
+            <td><span class="badge sev-${esc(i.severity)}">${esc(i.severity)}</span></td>
+            <td><span class="badge st-${esc(i.status)}">${esc(i.status)}</span></td>
+            <td>${esc(i.decision || i.detection_ref)}</td>
+            <td>${esc(i.updated_utc)}</td>
+          </tr>`).join("")
+        }</tbody></table>`;
+      } else if (activeTab === "devices") {
+        const rows = state.devices.filter((d) => !q || d.device_id.toLowerCase().includes(q) || d.room.toLowerCase().includes(q));
+        panel.innerHTML = `<table><thead><tr><th>Device</th><th>Type</th><th>Room</th><th>IP</th><th>Status</th><th>Events</th><th>Open</th></tr></thead><tbody>${
+          rows.map((d) => `<tr>
+            <td><strong>${esc(d.device_id)}</strong></td>
+            <td>${esc(d.device_type)}</td>
+            <td>${esc(d.room)}</td>
+            <td><code>${esc(d.ip)}</code></td>
+            <td><span class="badge st-${esc(d.status)}">${esc(d.status)}</span></td>
+            <td>${d.event_count}</td>
+            <td>${d.open_incidents}</td>
+          </tr>`).join("")
+        }</tbody></table>`;
+      } else if (activeTab === "isolations") {
+        const rows = state.isolations.filter((x) => !q || x.device_id.toLowerCase().includes(q) || x.reason.toLowerCase().includes(q));
+        if (!rows.length) { panel.innerHTML = `<div class="empty">No isolation history yet.</div>`; return; }
+        panel.innerHTML = `<table><thead><tr><th>Device</th><th>Status</th><th>Actor</th><th>Reason</th><th>Started (UTC)</th><th>Action</th></tr></thead><tbody>${
+          rows.map((x) => `<tr>
+            <td><strong>${esc(x.device_id)}</strong></td>
+            <td><span class="badge st-${x.status === 'active' ? 'isolated' : esc(x.status)}">${esc(x.status)}</span></td>
+            <td>${esc(x.actor)}</td>
+            <td>${esc(x.reason)}</td>
+            <td>${esc(x.started_utc)}</td>
+            <td>${x.status === 'active' ? `<button class="btn" onclick="releaseDev('${esc(x.device_id)}', '${esc(x.incident_id || '')}')">Release</button>` : "-"}</td>
+          </tr>`).join("")
+        }</tbody></table>`;
+      } else {
+        const rows = state.audit.filter((a) => !q || a.actor.toLowerCase().includes(q) || a.action.toLowerCase().includes(q) || a.target.toLowerCase().includes(q));
+        if (!rows.length) { panel.innerHTML = `<div class="empty">No policy audit entries yet.</div>`; return; }
+        panel.innerHTML = `<table><thead><tr><th>Time (UTC)</th><th>Actor</th><th>Action</th><th>Target</th><th>Verdict</th><th>Reason</th></tr></thead><tbody>${
+          rows.map((a) => `<tr>
+            <td>${esc(a.ts_utc)}</td>
+            <td>${esc(a.actor)}</td>
+            <td><code>${esc(a.action)}</code></td>
+            <td>${esc(a.target)}</td>
+            <td><span class="badge verdict-${esc(a.verdict)}">${esc(a.verdict)}</span></td>
+            <td>${esc(a.reason)}</td>
+          </tr>`).join("")
+        }</tbody></table>`;
+      }
+    }
+
+    async function openIncident(id) {
+      const inc = await fetch(`/api/incidents/${encodeURIComponent(id)}`).then((r) => r.json());
+      document.getElementById("d-title").textContent = inc.id;
+      document.getElementById("d-sub").textContent = `${inc.device_id} · ${inc.severity.toUpperCase()} · ${inc.status}`;
+      document.getElementById("d-body").innerHTML = `
+        <div class="meta-grid">
+          <div class="meta-box"><label>Detection Ref</label><div>${esc(inc.detection_ref)}</div></div>
+          <div class="meta-box"><label>Decision / Action</label><div>${esc(inc.decision || "-")} / ${esc(inc.action || "-")}</div></div>
+          <div class="meta-box" style="grid-column:1/-1"><label>Reasoning Summary</label><div>${esc(inc.reasoning_summary || "Pending")}</div></div>
+        </div>
+        <div>
+          <h3 style="font-size:13px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;">Timeline (${inc.timeline.length})</h3>
+          <div class="timeline">
+            ${inc.timeline.map((t) => `<div class="tl-item ${esc(t.kind)}">
+              <div class="tl-top"><strong>${esc(t.kind)} · ${esc(t.actor)}</strong><span>${esc(t.ts_utc)}</span></div>
+              <div>${esc(t.summary)}</div>
+              ${Object.keys(t.details || {}).length ? `<pre>${esc(JSON.stringify(t.details, null, 2))}</pre>` : ""}
+            </div>`).join("")}
+          </div>
+        </div>`;
+      document.getElementById("drawer-backdrop").classList.add("open");
+    }
+
+    async function releaseDev(deviceId, incidentId) {
+      const qs = incidentId ? `?incident_id=${encodeURIComponent(incidentId)}` : "";
+      await fetch(`/api/isolations/${encodeURIComponent(deviceId)}/release${qs}`, { method: "POST" });
+      await refreshAll();
+    }
+
+    document.querySelectorAll(".tab[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab[data-tab]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeTab = btn.dataset.tab;
+        render();
+      });
+    });
+    document.getElementById("search-box").addEventListener("input", render);
+    document.getElementById("severity-filter").addEventListener("change", render);
+    document.getElementById("d-close").addEventListener("click", () => document.getElementById("drawer-backdrop").classList.remove("open"));
+    document.getElementById("drawer-backdrop").addEventListener("click", (e) => {
+      if (e.target.id === "drawer-backdrop") e.currentTarget.classList.remove("open");
+    });
+
+    loadHealth();
+    refreshAll();
+    const es = new EventSource("/api/stream");
+    es.onmessage = (ev) => {
+      const data = JSON.parse(ev.data);
+      state.kpis = data.kpis;
+      state.devices = data.devices;
+      state.incidents = data.incidents;
+      state.isolations = data.isolations;
+      render();
+    };
+  </script>
+</body>
+</html>

@@ -9,12 +9,13 @@ pytest>=8.0
 scikit-learn>=1.4
 numpy>=1.26
 
-# Checkpoint 3 - LLM agents (uncomment when keys exist)
-# groq>=0.9
-# openai>=1.30          # DeepSeek is OpenAI-API-compatible
-
-# Checkpoint 3+ - dashboard (tech choice pending)
-# flask>=3.0
+# Checkpoint 3 - LLM agents & dashboard
+groq>=0.9
+openai>=1.30          # DeepSeek is OpenAI-API-compatible
+python-dotenv>=1.0
+fastapi>=0.115
+uvicorn>=0.30
+httpx>=0.27
 
 # Checkpoint 4 - capture / attack tooling (some via system packages)
 # scapy>=2.5

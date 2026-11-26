@@ -47,12 +47,14 @@ def class_files(root):
     return out
 
 
-def load_sample(root, rows_per_file=2000, categories=None):
+def load_sample(root, rows_per_file=2000, categories=None, seed=0):
     parts = []
     for entry in class_files(root):
         if categories and entry["category"] not in categories:
             continue
-        df = pd.read_csv(entry["path"], nrows=rows_per_file)
+        df = pd.read_csv(entry["path"])
+        if rows_per_file is not None and len(df) > rows_per_file:
+            df = df.sample(n=rows_per_file, random_state=seed)
         df = df.drop(columns=[c for c in df.columns if c.lower() == "label"], errors="ignore")
         df["category"] = entry["category"]
         df["is_attack"] = int(entry["is_attack"])

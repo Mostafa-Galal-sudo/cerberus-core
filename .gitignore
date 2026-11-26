@@ -22,3 +22,7 @@ data/lab/
 # Local secrets - API keys live in .env, never in Git
 .env
 .dev.vars
+
+# Session handoff / local analysis notes
+docs/finalresponse.json
+docs/CODEBASE_ANALYSIS.md

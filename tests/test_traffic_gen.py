@@ -66,7 +66,7 @@ def test_payload_sizes_stay_in_profile_range(state):
             elif p.device_type == "motor":
                 raw = motor_payload(p, i, state, 0.0)
             else:
-                value = {"motion": 1, "door": "open"}[p.device_type]
+                value = {"motion": 1, "door": "open"}.get(p.device_type, 1)
                 raw = event_payload(p, i, state, 0.0, value)
             sizes.append(len(raw))
         lo, hi = p.payload_size_range

@@ -96,11 +96,15 @@ def status_payload(profile, state, now, state_name):
 
 def finish(profile, body, now):
     raw = json.dumps(body, separators=(",", ":")).encode()
-    target = random.randint(*profile.payload_size_range)
+    lo, hi = profile.payload_size_range
+    target = random.randint(lo, hi)
     needed = target - len(raw)
     if needed >= 9:
         body["pad"] = secrets.token_hex((needed - 9) // 2) + ("a" if (needed - 9) % 2 else "")
         raw = json.dumps(body, separators=(",", ":")).encode()
+    # Clamp: never exceed ceiling (base JSON can exceed target when fields are long)
+    if len(raw) > hi:
+        raw = raw[:hi]
     return raw
 
 
@@ -190,6 +194,11 @@ def publish_periodic(client, conn, profile, state, seq, now):
             log_publish(conn, profile, state_topic, state_raw, 1)
     elif profile.device_type == "motor":
         raw = motor_payload(profile, seq, state, now)
+        topic = profile.topics_publish[0]
+        client.publish(topic, raw, qos=profile.qos)
+        log_publish(conn, profile, topic, raw, profile.qos)
+    else:
+        raw = event_payload(profile, seq, state, now, 1)
         topic = profile.topics_publish[0]
         client.publish(topic, raw, qos=profile.qos)
         log_publish(conn, profile, topic, raw, profile.qos)

@@ -10,9 +10,9 @@ ESP32-based IoT testbed.
 ## Build status
 
 | Checkpoint | Window | Scope | Status |
-|------------|--------|-------|--------|
-| C1 — Foundation & data pipeline | 16-22 Nov | simulator + storage + CICIoT2023 EDA | in progress |
-| C2 — Detection engine v1 + benchmark | 23-29 Nov | rules vs ML vs hybrid | not started |
+|---|---|---|---|
+| C1 — Foundation & data pipeline | 16-22 Nov | simulator + storage + CICIoT2023 EDA | complete |
+| C2 — Detection engine v1 + benchmark | 23-29 Nov | rules vs ML vs hybrid | complete |
 | C3 — Agents + response + dashboard | 30 Nov - 6 Dec | closed loop on simulated traffic | not started |
 | C4 — Real testbed + lab dataset | 7-13 Dec | ESP32 + AP + gap report | not started |
 | C5 — Closed loop on real testbed | 14-20 Dec | live demo + CIs | not started |

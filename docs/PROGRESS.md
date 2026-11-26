@@ -38,7 +38,25 @@ The task-level plan lives in `../CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 4. Devices never published `online` status after a dropout (retained state
    stayed `offline`) — recovery hook added to the loop (`e785304`).
 
-## Checkpoint 2 — Detection Engine v1 + Benchmark (23–29 Nov) — not started
+## Checkpoint 2 — Detection Engine v1 + Benchmark (23–29 Nov) — ✅ COMPLETE 26 Nov
 
-Planned first move: `src/detection/features.py` on top of the stored
-`mqtt_events` schema + CICIoT2023 loader with folder-derived labels.
+| Task | Result | Evidence |
+|------|--------|----------|
+| C2-T01 features | 13 sliding-window MQTT behavioral features | `src/detection/features.py` |
+| C2-T02 dataset loader | CICIoT2023 folder-label loader + file-level split | `src/detection/dataset.py` |
+| C2-T03 rules engine | `RuleEngine` (`ciciot` 8 rules, `mqtt` 6 rules) | `src/detection/rules_engine.py` |
+| C2-T04 ML model | `AnomalyModel` (Isolation Forest + IQR scaling) | `src/detection/ml_model.py` |
+| C2-T05 fingerprint | `DeviceFingerprint` (per-device median/MAD baseline) | `src/detection/fingerprint.py` |
+| C2-T06 hybrid detector | `DeviationBaseline` + `HybridDetector` (confidence + severity + explanation) | `src/detection/baseline.py`, `src/detection/hybrid.py` |
+| C2-T07 benchmark harness | Benign-only fit, file-level split, 5-detector comparison | `src/evaluation/benchmark.py` |
+| C2-T08 CICIoT2023 benchmark | `hybrid` 0.956 F1, `baseline` 0.926 F1, `rules` 0.958 F1, `iforest` 0.604 F1 + confusion matrices (random sampling `seed=0`) | `results/benchmark_ciciot_v1.md` |
+| C2-T09 lab sanity check | Live `traffic_gen.py` + `anomalies.py` (`flood`/`bloat`/`rogue`) + synthetic check | `src/simulator/anomalies.py`, `src/evaluation/lab_check.py`, `tests/test_lab_detection.py` |
+
+### Bugs found and fixed during this checkpoint
+
+1. `DeviationBaseline.drivers()` tie-breaking at `SCORE_CLIP = 20.0` omitted `'Rate'` when multiple features saturated — fixed by ranking on unclipped z-scores.
+2. `DeviceFingerprint._baseline()` fell back directly to `0.01 * median` when `MAD == 0`, inflating `threshold_` to `20.0` on discrete event counts — fixed by falling back to `std` before `max(|median| * 0.05, 1e-3)`.
+3. `lab_check.py` compared epoch `window_start` against relative `TRAIN_END = 1800.0`, producing an empty training frame — fixed by subtracting `BASE.timestamp()`.
+4. `features.py` trailing partial window divided `rate_per_sec` by full `window_sec` — fixed to divide by actual tail duration; added `topic_entropy` (14 features).
+5. `HybridDetector.predict()` did not flag unrecognized devices on its own — added `unknown_device:<id>` detection + explanation when `fingerprint` is attached.
+6. `dataset.load_sample()` took the first `nrows` per CSV (capture-start bias) — switched to seeded random sampling (`seed=0`), improving `Recon` hybrid recall from `0.110` to `0.230`.

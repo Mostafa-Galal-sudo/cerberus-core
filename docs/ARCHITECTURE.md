@@ -72,8 +72,8 @@ mqtt_events -> src/detection/features.py  -> rules | ML | fingerprint | hybrid
 
 | Layer | Status |
 |-------|--------|
-| Testbed / simulator | simulator running; real ESP32 testbed planned (C4) |
-| Detection | not started (C2) |
+| Testbed / simulator | simulator + anomaly injector running; real ESP32 testbed planned (C4) |
+| Detection | done (C2) — rules, Isolation Forest, deviation baseline, device fingerprint, hybrid |
 | Agents | not started (C3) |
 | Response / policy | schema planned (C3) |
 | Presentation | not started (C3) |

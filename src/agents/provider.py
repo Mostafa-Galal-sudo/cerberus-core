@@ -72,13 +72,16 @@ class ProviderProfile:
     default_model: str = ""
     model_env: str | None = None
     headers: dict[str, str] = field(default_factory=dict)
+    requires_key: bool = True
+    placeholder_key: str | None = None
 
     def api_key(self, env: dict[str, str]) -> str | None:
         for name in self.key_env:
             value = str(env.get(name, "") or "").strip()
             if value:
                 return value
-        return None
+        # Local providers such as Ollama need a non-secret SDK placeholder only.
+        return self.placeholder_key if not self.requires_key else None
 
     def model(self, env: dict[str, str]) -> str:
         if self.model_env:
@@ -109,6 +112,12 @@ PROFILES: dict[str, ProviderProfile] = {
         base_url="https://openrouter.ai/api/v1",
         default_model="openai/gpt-4o-mini", model_env="CERBERUS_OPENROUTER_MODEL",
         headers={"HTTP-Referer": "https://cerberus.local", "X-Title": "Cerberus SOC"},
+    ),
+    "ollama": ProviderProfile(
+        "ollama", "Ollama (local)", ("OLLAMA_API_KEY",), "openai",
+        base_url="http://127.0.0.1:11434/v1",
+        default_model="qwen3-vl:4b-instruct", model_env="CERBERUS_OLLAMA_MODEL",
+        requires_key=False, placeholder_key="ollama",
     ),
     "groq": ProviderProfile(
         "groq", "Groq (legacy)", ("GROQ_API_KEY",), "groq",

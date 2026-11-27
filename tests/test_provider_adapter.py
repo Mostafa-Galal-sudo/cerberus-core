@@ -20,7 +20,7 @@ from src.storage.db import open_db
 
 _ENV_KEYS = (
     "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY",
-    "OPENROUTER_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY",
+    "OPENROUTER_API_KEY", "OLLAMA_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY",
     "CERBERUS_DEFENSE_PROVIDER", "CERBERUS_ATTACK_PROVIDER",
     "CERBERUS_LLM_AB_PROVIDERS", "CERBERUS_DEFENSE_AB_PROVIDERS",
     "CERBERUS_ATTACK_AB_PROVIDERS", "CERBERUS_LLM_MAX_ATTEMPTS",
@@ -28,7 +28,7 @@ _ENV_KEYS = (
     "CERBERUS_LLM_CIRCUIT_FAILURES", "CERBERUS_LLM_CIRCUIT_COOLDOWN_S",
     "CERBERUS_LLM_RETRY_BASE_S", "CERBERUS_LLM_RETRY_MAX_S",
     "CERBERUS_LLM_TIMEOUT_S", "CERBERUS_LLM_USD_PER_1K_TOKENS",
-    "CERBERUS_LLM_MAX_TOKENS",
+    "CERBERUS_LLM_MAX_TOKENS", "CERBERUS_OLLAMA_MODEL",
 )
 
 
@@ -264,3 +264,66 @@ def test_attack_result_records_provider_and_model(tmp_path):
         assert result.plan["provider"] == "injected"
     finally:
         conn.close()
+
+
+def test_ollama_profile_requires_no_secret_key():
+    from src.agents.provider import PROFILES
+
+    env = {
+        "CERBERUS_DEFENSE_PROVIDER": "ollama",
+        "CERBERUS_OLLAMA_MODEL": "qwen3-vl:4b-instruct",
+    }
+    assert resolve_provider("defense", env=env) == "ollama"
+    assert PROFILES["ollama"].api_key({}) == "ollama"  # SDK placeholder, not a secret
+    adapter = ProviderAdapter("defense", env=env)
+    assert adapter.status().mode == "live"
+    assert adapter.status().model == "qwen3-vl:4b-instruct"
+    assert build_health_status(env=env)["roles"]["defense"]["provider"] == "ollama"
+
+
+def test_ollama_local_live_smoke():
+    """Opt-in real check: runs only when the local Ollama server is reachable."""
+    import httpx
+
+    try:
+        httpx.get("http://127.0.0.1:11434/api/tags", timeout=2.0).raise_for_status()
+    except Exception:
+        pytest.skip("local Ollama server is not running")
+
+    env = {
+        "CERBERUS_DEFENSE_PROVIDER": "ollama",
+        "CERBERUS_LLM_MAX_ATTEMPTS": "1",
+        "CERBERUS_LLM_TIMEOUT_S": "120",
+    }
+    adapter = ProviderAdapter("defense", env=env)
+    result = adapter.complete(
+        messages=[
+            {"role": "system", "content": "Reply with JSON only."},
+            {"role": "user", "content": 'Return exactly {"ok": true}'},
+        ],
+        temperature=0.1,
+    )
+    assert "ok" in result.content
+    assert result.provider == "ollama"
+    assert result.usage and result.usage.get("total_tokens", 0) > 0
+
+    tool_result = adapter.complete(
+        messages=[{"role": "user", "content": "Inspect esp32_temp_01 with the available tool."}],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "query_device_events",
+                    "description": "Fetch recent MQTT events for a device from SQLite.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"device_id": {"type": "string"}},
+                        "required": ["device_id"],
+                    },
+                },
+            }
+        ],
+        tool_choice="auto",
+        temperature=0.1,
+    )
+    assert tool_result.tool_calls[0]["function"]["name"] == "query_device_events"

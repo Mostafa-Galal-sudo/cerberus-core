@@ -39,10 +39,11 @@
 - `src/agents/provider.py` replaces the Groq/DeepSeek-only client paths with one bounded request path:
   lazy client creation, per-request timeout, bounded retry, circuit breaker, call/cost budget, and
   normalized responses for OpenAI-compatible SDKs and Anthropic messages.
-- Provider profiles: OpenAI, Anthropic, Google AI Studio, OpenRouter, plus legacy Groq and DeepSeek
-  profiles so existing deployments keep their behaviour. Selection is via
+- Provider profiles: OpenAI, Anthropic, Google AI Studio, OpenRouter, a local Ollama profile, plus
+  legacy Groq and DeepSeek profiles so existing deployments keep their behaviour. Selection is via
   `CERBERUS_DEFENSE_PROVIDER` / `CERBERUS_ATTACK_PROVIDER`; keys are read only from environment or an
-  injected secret store and are never logged.
+  injected secret store and are never logged. Ollama needs no secret — the SDK placeholder `ollama`
+  is used — and is opt-in so existing fallback evidence stays reproducible.
 - A/B assignment is deterministic: `CERBERUS_LLM_AB_PROVIDERS` (or a role-specific variant) names two
   or more keyed providers and `assignment_key` hashes to a stable choice per incident/attack. This is
   an experiment assignment mechanism, not a completed comparison.
@@ -102,6 +103,7 @@ Verified from official provider docs during the discussion (not provisioned, no 
 | Anthropic | `console.anthropic.com` | `claude-sonnet-5-5`, `claude-haiku-5-5`, `claude-opus-5-5` |
 | Google AI Studio | `aistudio.google.com/apikey` | `gemini-4-hydrogen`, `gemini-4-argon`, `gemini-3.8-flash` |
 | OpenRouter | `openrouter.ai/keys` | single OpenAI-compatible endpoint for A/B across many models |
+| Ollama (local) | no key — local HTTP endpoint `http://127.0.0.1:11434/v1` | locally installed model, currently `qwen3-vl:4b-instruct` |
 
 Cyber-specific tiers (for example OpenAI Daybreak models) may require approved-access programmes;
 do not assume availability. The deterministic fallback stays as an outage path, not as the default.

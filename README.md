@@ -92,11 +92,23 @@ Keys belong in environment variables or a secret store, never in the repository.
 
 ```powershell
 # choose a provider per role (legacy defaults: groq for defense, deepseek for attack)
-$env:CERBERUS_DEFENSE_PROVIDER = "openai"      # openai | anthropic | google | openrouter | groq
+$env:CERBERUS_DEFENSE_PROVIDER = "openai"      # openai | anthropic | google | openrouter | ollama | groq
 $env:CERBERUS_ATTACK_PROVIDER  = "anthropic"
 $env:OPENAI_API_KEY = "..."
 $env:ANTHROPIC_API_KEY = "..."
 ```
+
+A local Ollama server needs no key; select it explicitly:
+
+```powershell
+$env:CERBERUS_DEFENSE_PROVIDER = "ollama"
+$env:CERBERUS_ATTACK_PROVIDER  = "ollama"
+$env:CERBERUS_OLLAMA_MODEL = "qwen3-vl:4b-instruct"
+```
+
+Ollama is reached at `http://127.0.0.1:11434/v1` through its OpenAI-compatible
+endpoint. `/api/health` reports `mode=live` when it is *configured*, not when the
+server is reachable; the adapter still fails closed to fallback if Ollama is down.
 
 Optional controls: `CERBERUS_<PROVIDER>_MODEL`, `CERBERUS_LLM_TIMEOUT_S`,
 `CERBERUS_LLM_MAX_ATTEMPTS`, `CERBERUS_LLM_RETRY_BASE_S`,

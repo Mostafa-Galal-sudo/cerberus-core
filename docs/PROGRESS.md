@@ -171,3 +171,16 @@ and local SQLite only.
   bounded call budget plus an optional token-cost ceiling; no real token accounting was observed.
 - Anthropic support is translated and mock-verified only; the live SDK path has not been exercised.
 - Deterministic fallback remains the only agent mode in all E1/E2 evidence and in the current demo.
+
+### Local Ollama provider — verified on this machine
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| Local server | Ollama is installed and reachable at `127.0.0.1:11434`; `/api/tags` and the OpenAI-compatible `/v1/models` both list `qwen3-vl:4b-instruct`. | PowerShell `Invoke-RestMethod` against both endpoints |
+| Adapter support | Added an opt-in `ollama` profile using `http://127.0.0.1:11434/v1` and the SDK placeholder key `ollama`; no secret is required or stored. Existing no-key runs still select the legacy fallback providers. | `PROFILES` in `src/agents/provider.py`; `tests/test_provider_adapter.py` |
+| Real provider response | Plain completion returned clean JSON with token usage; tool calling returned a normalized `query_device_events` call with arguments. | `tests/test_provider_adapter.py::test_ollama_local_live_smoke` — ran locally (not skipped); focused suite `16 passed in 14.33s` |
+| End-to-end agent | `DefenseAgent` with `CERBERUS_DEFENSE_PROVIDER=ollama` completed a detection through the adapter: `mode=llm`, `provider=ollama`, `model=qwen3-vl:4b-instruct`, no fallback, `llm_mode` timeline event present. | Local smoke run against a fresh temp DB; adapter status `configured=True`, `circuit=closed`, `calls=1`, `last_error=None` |
+
+The model is a local 4B vision-language model used here for text-only chat; no claim is made about
+vision input, general model quality, or parity with hosted providers. This is still simulation-only:
+all targets remain inside the lab allowlist and `PolicyGate` stays the single response path.

@@ -93,7 +93,9 @@ def test_defense_agent_llm_tool_calling_and_policy_isolation(tmp_path):
         assert res.mode == "llm"
         assert res.incident.severity == "critical"
         assert res.isolation is not None and res.isolation.executed is True
-        assert [e.kind for e in res.incident.timeline] == ["detection", "tool_call", "isolation"]
+        assert [e.kind for e in res.incident.timeline] == [
+            "detection", "tool_call", "isolation", "llm_mode"
+        ]
     finally:
         conn.close()
 

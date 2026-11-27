@@ -1,6 +1,6 @@
 # C3-Extended
 
-**Status:** E1 and E2 implemented; E3–E7 remain proposed scope only. No dates or durations are attached.
+**Status:** E1 and E2 implemented with live lab evidence; E3 implemented and mock-verified, with live keyed verification and the two-provider A/B comparison still blocked on credentials; E4–E7 remain proposed scope only. No dates or durations are attached.
 **Relationship to C3:** extends the already-completed Checkpoint 3 without modifying or replacing its evidence.
 **Mode:** simulation-only. Isolated lab traffic, no physical ESP32, no RF/CSI/SDR measurements, no external network targets.
 
@@ -34,6 +34,25 @@
   in MQTT events and incident detection evidence exactly once, with no SQLite lock errors and no
   integrity failures.
 
+### E3 — Generic LLM provider adapter — implemented (mock-verified)
+
+- `src/agents/provider.py` replaces the Groq/DeepSeek-only client paths with one bounded request path:
+  lazy client creation, per-request timeout, bounded retry, circuit breaker, call/cost budget, and
+  normalized responses for OpenAI-compatible SDKs and Anthropic messages.
+- Provider profiles: OpenAI, Anthropic, Google AI Studio, OpenRouter, plus legacy Groq and DeepSeek
+  profiles so existing deployments keep their behaviour. Selection is via
+  `CERBERUS_DEFENSE_PROVIDER` / `CERBERUS_ATTACK_PROVIDER`; keys are read only from environment or an
+  injected secret store and are never logged.
+- A/B assignment is deterministic: `CERBERUS_LLM_AB_PROVIDERS` (or a role-specific variant) names two
+  or more keyed providers and `assignment_key` hashes to a stable choice per incident/attack. This is
+  an experiment assignment mechanism, not a completed comparison.
+- Every incident records an `llm_mode` timeline event with `mode`, `provider`, `model`, `circuit`, and
+  any error; attack results and `policy_audit.context_json` carry the same mode/provider/model fields.
+  The dashboard health endpoint exposes `providers.roles` alongside the legacy `llm_mode` fields.
+- Deterministic fallback remains authoritative on missing keys, SDK import failure, circuit-open,
+  budget exhaustion, or provider errors. No live provider response has been observed: all current
+  agent evidence is fallback mode, not an LLM result.
+
 ## Goal
 
 Turn the three-cycle demo into a continuously running simulated SOC, exercise several attacks at the same
@@ -62,7 +81,7 @@ detectors; E5 adds controls for the attacks to target.
 |----|------|----------------------------------|------------|
 | E1 | **implemented** — Continuous simulated demo: Mosquitto + `traffic_gen.py` as a detached publisher + anomaly injector + detection worker + FastAPI dashboard with SSE | long-running run stopped only by operator; MQTT publish over real sockets; DB updated from subscriber callback; UTC timestamps in logs; evidence in `docs/PROGRESS.md` | existing C3 |
 | E2 | **implemented** — Concurrent attacks: N injectors with distinct client IDs and targets, correlation ID per attack, fan-out of every detection to the defense agent | N=3/5 runs with separated incidents, no DB corruption under the existing write lock, auditable per-attack chain; evidence in `docs/PROGRESS.md` | E1 |
-| E3 | LLM provider adapter replacing the Groq/DeepSeek-specific paths | key only in env/secret store; retry, timeout, circuit breaker, spend cap; `mode=llm/fallback` recorded per incident; A/B between two providers | existing C3 |
+| E3 | **implemented (mock-verified)** — LLM provider adapter replacing the Groq/DeepSeek-specific paths | key only in env/secret store; retry, timeout, circuit breaker, spend cap; `mode=llm/fallback` recorded per incident; A/B assignment mechanism ready. Live keyed verification and the actual two-provider comparison remain blocked on credentials. | existing C3 |
 | E4 | HTTP, CoAP, DNS ingestion: `protocol` column, parsers, per-protocol features, rules, and fingerprint baselines | labelled events for each protocol, working detectors, no regression against the existing MQTT benchmark | E1 |
 | E5 | Protocol security controls: MQTT TLS/mTLS + topic ACLs, CoAP DTLS/PSK, lab HTTP auth + rate limits | attack scenarios run against those controls in the isolated lab; ALLOW/DENY rows in `policy_audit`; PolicyGate remains the single response path | E4 |
 | E6 | Live local network: `tshark`/`dumpcap` capture on loopback or an isolated LAN interface | pcap with UTC filenames plus metadata sheet; dashboard reading the same traffic being captured; no traffic aimed outside the lab | E1 |
@@ -86,6 +105,20 @@ Verified from official provider docs during the discussion (not provisioned, no 
 
 Cyber-specific tiers (for example OpenAI Daybreak models) may require approved-access programmes;
 do not assume availability. The deterministic fallback stays as an outage path, not as the default.
+
+Adapter configuration (all optional; keys/models are resolved at call time, never baked into code):
+
+| Variable | Purpose |
+|----------|---------|
+| `CERBERUS_DEFENSE_PROVIDER`, `CERBERUS_ATTACK_PROVIDER` | force a provider name for a role |
+| `CERBERUS_<PROVIDER>_MODEL` | override the placeholder default model ID |
+| `CERBERUS_LLM_AB_PROVIDERS` / `CERBERUS_<ROLE>_AB_PROVIDERS` | comma-separated A/B provider list |
+| `CERBERUS_LLM_TIMEOUT_S`, `CERBERUS_LLM_MAX_ATTEMPTS`, `CERBERUS_LLM_RETRY_BASE_S`, `CERBERUS_LLM_RETRY_MAX_S` | request timeout and bounded retry |
+| `CERBERUS_LLM_CIRCUIT_FAILURES`, `CERBERUS_LLM_CIRCUIT_COOLDOWN_S` | circuit breaker thresholds |
+| `CERBERUS_LLM_MAX_CALLS`, `CERBERUS_LLM_MAX_ESTIMATED_USD`, `CERBERUS_LLM_USD_PER_1K_TOKENS` | call budget and optional token-cost ceiling |
+
+Model IDs shipped as defaults are placeholders pending keyed verification; do not report them as
+verified working models.
 
 ## Evidence discipline
 

@@ -18,6 +18,7 @@ claimed.
 | C3 — Agents + response + dashboard | 30 Nov - 6 Dec | closed loop on simulated traffic | complete (26 Nov) |
 | C3-Extended E1 — Continuous simulated SOC | — | MQTT live stack + subscriber-owned DB + SSE dashboard | complete |
 | C3-Extended E2 — Concurrent attacks | — | N=3/5 injectors, per-attack correlation, fan-out | complete |
+| C3-Extended E3 — LLM provider adapter | — | OpenAI / Anthropic / Google / OpenRouter, retry + breaker + budget, fallback | complete (mock-verified; live keys pending) |
 | C4 — Simulated testbed + lab dataset | 7-13 Dec | simulation-only scope; no physical hardware | not started |
 | C5 — Closed loop on simulated testbed | 14-20 Dec | continuous demo + CIs | not started |
 | C6 — Multi-protocol resilience (stretch) + final | 21-27 Dec | report only; no RF/SDR claims | not started |
@@ -31,7 +32,7 @@ cerberus-core/
 │   ├── simulator/  simulated IoT traffic generation
 │   ├── storage/    SQLite persistence layer
 │   ├── detection/  rules + ML + fingerprinting + hybrid
-│   ├── agents/     defense (Groq) + attack (DeepSeek) agents
+│   ├── agents/     provider adapter + defense/attack agents + fallback
 │   ├── policy/     single authorization gate (no bypass paths)
 │   ├── live/       E1/E2 continuous MQTT stack (subscriber, publisher, injector, worker)
 │   ├── response/   automated, policy-bounded isolation
@@ -83,6 +84,31 @@ incident chain per correlated attack; `mqtt_events`, `policy_audit`, and
 it is not the normal operator path. Component logs are written to
 `%TEMP%\cerberus_live_*.out.log`, and a one-line DB summary can be reproduced
 with `python -m src.live.summary --db <path-to-live-db>`.
+
+## LLM provider configuration (E3)
+
+No key is required to run the demo: with no key the agents use deterministic fallback.
+Keys belong in environment variables or a secret store, never in the repository.
+
+```powershell
+# choose a provider per role (legacy defaults: groq for defense, deepseek for attack)
+$env:CERBERUS_DEFENSE_PROVIDER = "openai"      # openai | anthropic | google | openrouter | groq
+$env:CERBERUS_ATTACK_PROVIDER  = "anthropic"
+$env:OPENAI_API_KEY = "..."
+$env:ANTHROPIC_API_KEY = "..."
+```
+
+Optional controls: `CERBERUS_<PROVIDER>_MODEL`, `CERBERUS_LLM_TIMEOUT_S`,
+`CERBERUS_LLM_MAX_ATTEMPTS`, `CERBERUS_LLM_RETRY_BASE_S`,
+`CERBERUS_LLM_CIRCUIT_FAILURES`, `CERBERUS_LLM_CIRCUIT_COOLDOWN_S`,
+`CERBERUS_LLM_MAX_CALLS`, `CERBERUS_LLM_MAX_ESTIMATED_USD`,
+`CERBERUS_LLM_USD_PER_1K_TOKENS`, and `CERBERUS_LLM_AB_PROVIDERS` for A/B
+assignment. Every incident records an `llm_mode` event with the chosen mode,
+provider, and model; `/api/health` reports `providers.roles` plus the legacy
+`llm_mode` fields.
+
+Default model IDs are placeholders. No live provider call or A/B comparison has
+been performed, so no provider is claimed as verified working.
 
 ## Weekly plan and tasks
 

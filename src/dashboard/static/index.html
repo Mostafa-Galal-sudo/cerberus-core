@@ -421,7 +421,7 @@
       <button class="nav-item" data-view="audit" onclick="setView('audit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Policy Audit</button>
     </nav>
     <div class="sidebar-foot">
-      <div class="llm-row"><span class="llm-chip" id="groq-chip">Groq: --</span><span class="llm-chip" id="ds-chip">DeepSeek: --</span></div>
+      <div class="llm-row"><span class="llm-chip" id="provider-chip">Provider: --</span><span class="llm-chip" id="groq-chip">Groq: --</span><span class="llm-chip" id="ds-chip">DeepSeek: --</span></div>
       <div class="user-card"><div class="avatar">C3</div><div class="user-meta"><strong>SOC Operator</strong><span>@cerberus-lab</span></div></div>
     </div>
   </aside>
@@ -437,7 +437,7 @@
     let feedSort = "latest";
 
     let state = {
-      health: { llm_mode: { groq: "fallback", deepseek: "fallback" } },
+      health: { llm_mode: { groq: "fallback", deepseek: "fallback" }, providers: { roles: {}, ab: {} } },
       kpis: {},
       devices: [],
       incidents: [],
@@ -1231,10 +1231,16 @@
         const h = await fetch("/api/health").then((r) => { if (!r.ok) throw 0; return r.json(); });
         state.health = h;
         const g = document.getElementById("groq-chip"), d = document.getElementById("ds-chip");
+        const p = document.getElementById("provider-chip");
         g.textContent = `Groq: ${h.llm_mode.groq}`; d.textContent = `DeepSeek: ${h.llm_mode.deepseek}`;
         g.classList.toggle("live", h.llm_mode.groq === "live"); d.classList.toggle("live", h.llm_mode.deepseek === "live");
+        const defense = h.providers && h.providers.roles && h.providers.roles.defense;
+        p.textContent = defense ? `Provider: ${defense.provider} (${defense.mode})` : "Provider: fallback";
+        p.classList.toggle("live", Boolean(defense && defense.mode === "live"));
+        p.title = defense && defense.model ? `model=${defense.model}` : "no key configured; deterministic fallback";
       } catch (e) {
         document.getElementById("groq-chip").textContent = "Groq: demo"; document.getElementById("ds-chip").textContent = "DeepSeek: demo";
+        document.getElementById("provider-chip").textContent = "Provider: demo";
       }
     }
 

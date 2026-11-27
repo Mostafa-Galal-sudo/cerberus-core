@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
 
+from src.agents import build_health_status
 from src.incidents import IncidentStore
 from src.policy import AuditLogger, PolicyGate
 from src.response import IsolationRegistry, release_device
@@ -192,13 +193,16 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     @app.get("/api/health")
     def health() -> dict[str, Any]:
         snap = _build_snapshot(conn, gate)
+        providers = build_health_status()
         return {
             "status": "ok",
             "db_path": str(resolved_db),
+            # Legacy fields kept for existing dashboards; no key value is exposed.
             "llm_mode": {
                 "groq": "live" if os.environ.get("GROQ_API_KEY") else "fallback",
                 "deepseek": "live" if os.environ.get("DEEPSEEK_API_KEY") else "fallback",
             },
+            "providers": providers,
             **snap["kpis"],
         }
 

@@ -147,3 +147,27 @@ produced after this fix.
 - `-StopAfterSeconds` remains a supervised verification control, not the documented operator path.
 - No live LLM provider, A/B comparison, physical device, RF, CSI, PHY fingerprint, or SDR measurement
   was performed.
+
+## Checkpoint 3-Extended — E3 Provider Adapter — ✅ IMPLEMENTED (mock-verified)
+
+Additive to E1 and E2: the C1, C2, C3, E1, and E2 evidence above is unchanged. No live provider key
+was configured at any point, so no LLM response was observed; everything below is verified from mocks
+and local SQLite only.
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| E3 adapter | `src/agents/provider.py` centralizes provider selection, lazy client creation, request timeout, bounded retry, circuit breaker, call/cost budget, and response normalization for OpenAI-compatible SDKs and Anthropic messages. | `src/agents/provider.py`; `tests/test_provider_adapter.py` |
+| E3 provider coverage | Profiles for OpenAI, Anthropic, Google AI Studio, OpenRouter, plus legacy Groq/DeepSeek. Keys are read only from env or an injected secret store; no key value is logged or persisted by the adapter. | `PROFILES` in `src/agents/provider.py`; no-key and explicit-provider tests |
+| E3 agent refactor | `DefenseAgent` and `AttackAgent` now share the adapter; the existing `client=` injection path remains intact. SDK import failure, missing key, circuit-open, and exhausted budget all route to the deterministic fallback. | `src/agents/defense_agent.py`, `src/agents/attack_agent.py`; agent fallback tests |
+| E3 per-incident evidence | Each incident gets an `llm_mode` timeline event with `mode`, `provider`, `model`, `circuit`, and error; attack results and `policy_audit.context_json` carry mode/provider/model. Dashboard `/api/health` exposes `providers.roles` next to the legacy `llm_mode` fields. | `tests/test_provider_adapter.py`; `src/dashboard/app.py`, `src/dashboard/static/index.html` |
+| E3 A/B mechanism | `CERBERUS_LLM_AB_PROVIDERS` (or role-specific variant) selects two or more keyed providers; a stable `role:assignment_key` hash picks one per incident/attack. Assignment is deterministic and testable, but no comparison result exists without keys. | `resolve_provider`, `build_health_status`; A/B tests |
+| E3 tests | Full suite green. | `& .\.venv\Scripts\python.exe -m pytest tests -q` -> `96 passed in 255.35s`; focused `tests/test_provider_adapter.py tests/test_agents.py` -> `21 passed in 1.38s` |
+
+### E3 limits / not claimed
+
+- No live request was sent to any provider. Default model IDs are placeholders and must be confirmed
+  when real keys are available; they are not presented as verified working models.
+- No A/B result, latency comparison, quality score, or cost figure is claimed. The spend cap is a
+  bounded call budget plus an optional token-cost ceiling; no real token accounting was observed.
+- Anthropic support is translated and mock-verified only; the live SDK path has not been exercised.
+- Deterministic fallback remains the only agent mode in all E1/E2 evidence and in the current demo.

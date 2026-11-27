@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 from dataclasses import dataclass
 from typing import Any
@@ -20,8 +19,9 @@ from src.policy import PolicyGate
 from src.response import IsolationResult, isolate_device
 
 from .fallback import fallback_investigate
+from .provider import ProviderAdapter
 
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"  # legacy compatibility alias
 
 DEFENSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
@@ -91,10 +91,16 @@ class DefenseResult:
     incident: IncidentRecord
     isolation: IsolationResult | None = None
     error: str | None = None
+    provider: str | None = None
+    model: str | None = None
 
 
 class DefenseAgent:
-    """Groq-powered defense agent with tool-calling and deterministic fallback."""
+    """Provider-agnostic defense agent with tool-calling and deterministic fallback.
+
+    The model proposes; ``PolicyGate`` disposes. Any provider/configuration
+    error routes to ``fallback_investigate`` without raising to the caller.
+    """
 
     def __init__(
         self,
@@ -105,7 +111,8 @@ class DefenseAgent:
         fingerprint: DeviceFingerprint | None = None,
         pcap_path: str | None = None,
         client: Any = None,
-        model: str = DEFAULT_GROQ_MODEL,
+        model: str | None = None,
+        provider: str | None = None,
         max_tool_rounds: int = 4,
     ) -> None:
         load_dotenv()
@@ -114,20 +121,14 @@ class DefenseAgent:
         self.incidents = incidents or IncidentStore(conn)
         self.fingerprint = fingerprint
         self.pcap_path = pcap_path
-        self.model = model
         self.max_tool_rounds = max_tool_rounds
-        self._client = client
-
-    def _get_client(self) -> Any:
-        if self._client is not None:
-            return self._client
-        api_key = os.environ.get("GROQ_API_KEY")
-        if not api_key:
-            return None
-        from groq import Groq
-
-        self._client = Groq(api_key=api_key)
-        return self._client
+        self.adapter = ProviderAdapter(
+            role="defense",
+            client=client,
+            provider=provider or ("injected" if client is not None else None),
+            model=model,
+        )
+        self.model = model
 
     def _run_tool(self, name: str, args: dict[str, Any], incident_id: str) -> dict[str, Any]:
         if name == "query_device_events":
@@ -165,28 +166,53 @@ class DefenseAgent:
             )
         return {"error": f"unknown tool {name!r}"}
 
-    def investigate(self, detection: dict[str, Any]) -> DefenseResult:
-        try:
-            client = self._get_client()
-        except Exception as exc:
-            inc, iso = fallback_investigate(
-                self.conn,
-                self.gate,
-                self.incidents,
-                detection,
-                fingerprint=self.fingerprint,
-            )
-            return DefenseResult(mode="fallback", incident=inc, isolation=iso, error=str(exc))
-        if client is None:
-            inc, iso = fallback_investigate(
-                self.conn,
-                self.gate,
-                self.incidents,
-                detection,
-                fingerprint=self.fingerprint,
-            )
-            return DefenseResult(mode="fallback", incident=inc, isolation=iso)
+    def _record_mode(self, incident_id: str, *, mode: str, error: str | None) -> None:
+        """Persist mode/provider/model on the incident timeline for A/B evidence."""
+        status = self.adapter.status()
+        self.incidents.append_event(
+            incident_id,
+            kind="llm_mode",
+            actor="defense_agent",
+            summary=(
+                f"mode={mode} provider={status.provider} model={status.model or 'n/a'} "
+                f"circuit={status.circuit}"
+            ),
+            details={
+                "mode": mode,
+                "provider": status.provider,
+                "model": status.model,
+                "circuit": status.circuit,
+                "error": error,
+            },
+        )
 
+    def _fallback_result(
+        self, detection: dict[str, Any], *, error: str | None = None
+    ) -> DefenseResult:
+        inc, iso = fallback_investigate(
+            self.conn,
+            self.gate,
+            self.incidents,
+            detection,
+            fingerprint=self.fingerprint,
+        )
+        self._record_mode(inc.id, mode="fallback", error=error)
+        final_rec = self.incidents.get_record(inc.id) or inc
+        status = self.adapter.status()
+        return DefenseResult(
+            mode="fallback",
+            incident=final_rec,
+            isolation=iso,
+            error=error,
+            provider=status.provider,
+            model=status.model,
+        )
+
+    def investigate(self, detection: dict[str, Any]) -> DefenseResult:
+        if not self.adapter.status().configured:
+            return self._fallback_result(detection)
+
+        status = self.adapter.status()
         device_id = str(detection.get("device_id") or "unknown")
         severity = str(detection.get("severity") or "medium").lower()
         if severity not in ("low", "medium", "high", "critical"):
@@ -210,44 +236,33 @@ class DefenseAgent:
         try:
             content = ""
             for _ in range(self.max_tool_rounds):
-                resp = client.chat.completions.create(
-                    model=self.model,
+                result = self.adapter.complete(
                     messages=messages,
                     tools=DEFENSE_TOOL_SCHEMAS,
                     tool_choice="auto",
                     temperature=0.1,
                 )
-                msg = resp.choices[0].message
-                tool_calls = getattr(msg, "tool_calls", None) or []
+                tool_calls = result.tool_calls
                 if not tool_calls:
-                    content = msg.content or ""
+                    content = result.content
                     break
 
                 messages.append(
                     {
                         "role": "assistant",
-                        "content": msg.content or "",
-                        "tool_calls": [
-                            {
-                                "id": tc.id,
-                                "type": "function",
-                                "function": {
-                                    "name": tc.function.name,
-                                    "arguments": tc.function.arguments,
-                                },
-                            }
-                            for tc in tool_calls
-                        ],
+                        "content": result.content,
+                        "tool_calls": tool_calls,
                     }
                 )
                 for tc in tool_calls:
-                    args = json.loads(tc.function.arguments or "{}")
-                    result = self._run_tool(tc.function.name, args, inc.id)
+                    function = tc["function"]
+                    args = json.loads(function.get("arguments") or "{}")
+                    tool_result = self._run_tool(function.get("name", ""), args, inc.id)
                     messages.append(
                         {
                             "role": "tool",
-                            "tool_call_id": tc.id,
-                            "content": json.dumps(result, default=str),
+                            "tool_call_id": tc.get("id", ""),
+                            "content": json.dumps(tool_result, default=str),
                         }
                     )
 
@@ -292,9 +307,16 @@ class DefenseAgent:
                         details={"action": "log_alert", "reason": alert_decision.reason},
                     )
 
+            self._record_mode(inc.id, mode="llm", error=None)
             final_rec = self.incidents.get_record(inc.id)
             assert final_rec is not None
-            return DefenseResult(mode="llm", incident=final_rec, isolation=iso)
+            return DefenseResult(
+                mode="llm",
+                incident=final_rec,
+                isolation=iso,
+                provider=status.provider,
+                model=status.model,
+            )
 
         except Exception as exc:
             self.incidents.append_event(
@@ -303,11 +325,4 @@ class DefenseAgent:
                 actor="defense_agent",
                 summary=f"LLM error ({exc}); switching to deterministic fallback",
             )
-            fb_inc, fb_iso = fallback_investigate(
-                self.conn,
-                self.gate,
-                self.incidents,
-                detection,
-                fingerprint=self.fingerprint,
-            )
-            return DefenseResult(mode="fallback", incident=fb_inc, isolation=fb_iso, error=str(exc))
+            return self._fallback_result(detection, error=str(exc))

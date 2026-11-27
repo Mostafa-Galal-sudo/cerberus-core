@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 from dataclasses import dataclass
 from typing import Any
@@ -16,9 +15,10 @@ from src.simulator.anomalies import (
 )
 
 from .fallback import fallback_attack_plan
+from .provider import ProviderAdapter
 
-DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
-DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"  # legacy compatibility alias
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"  # legacy compatibility alias
 
 _SYSTEM_PROMPT = (
     "You are the Cerberus Red-Team Simulator Agent. "
@@ -35,10 +35,12 @@ class AttackExecutionResult:
     events_injected: int = 0
     plan: dict[str, Any] | None = None
     error: str | None = None
+    provider: str | None = None
+    model: str | None = None
 
 
 class AttackAgent:
-    """DeepSeek-powered attack proposer; every execution routes through PolicyGate."""
+    """Provider-agnostic attack proposer; every execution routes through PolicyGate."""
 
     def __init__(
         self,
@@ -47,46 +49,43 @@ class AttackAgent:
         *,
         mqtt_client: Any = None,
         client: Any = None,
-        model: str = DEFAULT_DEEPSEEK_MODEL,
+        model: str | None = None,
+        provider: str | None = None,
+        assignment_key: str | None = None,
     ) -> None:
         load_dotenv()
         self.conn = conn
         self.gate = gate
         self.mqtt_client = mqtt_client
-        self._client = client
+        self.adapter = ProviderAdapter(
+            role="attack",
+            client=client,
+            provider=provider or ("injected" if client is not None else None),
+            model=model,
+            assignment_key=assignment_key,
+        )
         self.model = model
-
-    def _get_client(self) -> Any:
-        if self._client is not None:
-            return self._client
-        api_key = os.environ.get("DEEPSEEK_API_KEY")
-        if not api_key:
-            return None
-        from openai import OpenAI
-
-        self._client = OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
-        return self._client
+        self.last_provider = self.adapter.provider
+        self.last_model: str | None = None
 
     def propose(self, prompt: str = "Generate a lab MQTT anomaly test.") -> tuple[str, dict[str, Any], str | None]:
-        try:
-            client = self._get_client()
-        except Exception as exc:
-            return "fallback", fallback_attack_plan(), str(exc)
-        if client is None:
+        self.last_provider = self.adapter.provider
+        self.last_model = self.adapter.status().model
+        if not self.adapter.status().configured:
             return "fallback", fallback_attack_plan(), None
 
         try:
-            resp = client.chat.completions.create(
-                model=self.model,
+            result = self.adapter.complete(
                 messages=[
                     {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,
             )
-            content = resp.choices[0].message.content or "{}"
-            plan = json.loads(content)
+            plan = json.loads(result.content or "{}")
             plan["mode"] = "llm"
+            plan["provider"] = result.provider
+            plan["model"] = result.model
             return "llm", plan, None
         except Exception as exc:
             return "fallback", fallback_attack_plan(), str(exc)
@@ -107,7 +106,13 @@ class AttackAgent:
             "attack",
             action,
             target,
-            context={"topic": topic, "mode": mode, "reason": plan.get("reason", "")},
+            context={
+                "topic": topic,
+                "mode": mode,
+                "reason": plan.get("reason", ""),
+                "provider": self.last_provider,
+                "model": self.last_model,
+            },
         )
         if not decision.allowed:
             return AttackExecutionResult(
@@ -117,6 +122,8 @@ class AttackAgent:
                 events_injected=0,
                 plan=plan,
                 error=err,
+                provider=self.last_provider,
+                model=self.last_model,
             )
 
         if action == "attack_flood":
@@ -159,4 +166,6 @@ class AttackAgent:
             events_injected=injected,
             plan=plan,
             error=err,
+            provider=self.last_provider,
+            model=self.last_model,
         )

@@ -11,7 +11,8 @@ numpy>=1.26
 
 # Checkpoint 3 - LLM agents & dashboard
 groq>=0.9
-openai>=1.30          # DeepSeek is OpenAI-API-compatible
+openai>=1.30          # DeepSeek, OpenRouter and Google AI Studio are OpenAI-API-compatible
+anthropic>=0.40       # E3 optional provider; adapter fails closed if the SDK is absent
 python-dotenv>=1.0
 fastapi>=0.115
 uvicorn>=0.30

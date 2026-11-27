@@ -1,0 +1,54 @@
+# C3-T01 — Policy allowlist. Every action (defensive OR simulated-attack) must be listed here.
+version: 1
+scope:
+  devices: [esp32-01, esp32-02, esp32-03, esp32-04, esp32-05]
+  infrastructure: [broker]
+  topic_prefix: "cerberus/"
+actors:
+  defense_agent:
+    allowed_actions: [notify_only, rate_limit, quarantine_topic, block_device]
+    rate_limit: {max_actions: 10, per_seconds: 60}
+  attack_agent:
+    allowed_actions: [sim_mqtt_flood, sim_injection, sim_spoofed_identity]
+    rate_limit: {max_actions: 5, per_seconds: 60}
+actions:
+  notify_only:
+    target_kind: any
+    min_confidence: 0.0
+    params: {}
+  rate_limit:
+    target_kind: device
+    min_confidence: 0.6
+    params:
+      max_msgs_per_sec: {type: int, min: 1, max: 100}
+  quarantine_topic:
+    target_kind: topic
+    min_confidence: 0.75
+    params: {}
+  block_device:
+    target_kind: device
+    min_confidence: 0.85
+    params:
+      duration_s: {type: int, min: 30, max: 3600}
+  # ---- simulated attacks (testbed simulator only) ----
+  sim_mqtt_flood:
+    target_kind: device_or_infra
+    min_confidence: 0.0
+    params:
+      source: {type: device}
+      rate_msgs_per_s: {type: int, min: 1, max: 300}
+      duration_s: {type: int, min: 1, max: 60}
+  sim_injection:
+    target_kind: device
+    min_confidence: 0.0
+    params:
+      source: {type: device}
+      rate_msgs_per_s: {type: int, min: 1, max: 20}
+      duration_s: {type: int, min: 1, max: 60}
+  sim_spoofed_identity:
+    target_kind: device
+    min_confidence: 0.0
+    params:
+      source: {type: device}
+      rate_msgs_per_s: {type: int, min: 1, max: 50}
+      duration_s: {type: int, min: 1, max: 60}

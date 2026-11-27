@@ -1,0 +1,5 @@
+pydantic>=2
+pyyaml
+openai>=1.40
+scapy
+pytest

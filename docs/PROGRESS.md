@@ -75,3 +75,38 @@ The task-level plan lives in `CERBERUS_WEEKLY_CHECKPOINTS_TASKS.md`.
 | C3-T09 fallback mode | Deterministic rules-only investigation & attack plan when LLM keys missing/rate-limited | `src/agents/fallback.py`, `tests/test_agents.py` |
 | C3-T08 closed loop | In-process attack -> detect -> defend runner + 10 integration tests | `src/loop/runner.py`, `tests/test_closed_loop.py`, commit `d8db434` |
 | C3-T10 E2E demo | Single `demo.ps1` launcher: seed traffic, run 3 loop cycles, start SOC dashboard | `demo.ps1`, commit `4acc5d0` |
+
+## Checkpoint 3-Extended — E1 Continuous Simulated SOC — ✅ IMPLEMENTED 27 Nov
+
+Additive work only: C1, C2, and C3 evidence above is unchanged. Mode remains simulation-only;
+no physical ESP32, RF, CSI, or SDR measurement is implied.
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| E1 launcher | `.\demo.ps1 -Live` starts the continuous stack; plain `.\demo.ps1` still runs the C3 three-cycle demo. Broker preflight, fresh timestamped DB, readiness waits, cleanup, and a supervised `-StopAfterSeconds` control were added. | `demo.ps1`; PowerShell parser reported `demo.ps1 parse OK`; launcher wiring asserted in `tests/test_live_pipeline.py` |
+| E1 live stack | `src.live.subscriber` is the sole writer of `mqtt_events`; publisher, seed, and injector use real local MQTT sockets; worker reads subscriber-written rows and drives `DefenseAgent -> PolicyGate`; one-line DB summary via `src.live.summary`. | `src/live/*.py`; component logs in `%TEMP%\cerberus_live_*.out.log` |
+| E1 traffic-generator change | `traffic_gen.generate()` gained `persist=False`, custom `client_id`, optional `stop_event`, indefinite mode, and UTC-prefixed logs. Default C3 behaviour is preserved. | `src/simulator/traffic_gen.py`; default launcher path asserted by test |
+| E1 robustness fixes | SQLite connections now use a `30s` busy timeout for multi-process writers; retained MQTT messages are skipped; devices without a fitted benign baseline do not receive deviation alerts; injector logs `ALLOW`/`DENY` from `PolicyDecision.allowed`, not the nonexistent `verdict` attribute. | `src/storage/db.py`, `src/live/subscriber.py`, `src/live/worker.py`, `src/live/injector.py`; observed errors and fixes below |
+| E1 tests | Full suite green. | `& .\.venv\Scripts\python.exe -m pytest tests -q` -> `76 passed in 56.08s`; focused `tests/test_live_pipeline.py` -> `5 passed` |
+| E1 final supervised run | Continuous MQTT traffic, four policy-bounded attacks, incidents, isolations, and denies all persisted in a fresh DB. | `.\demo.ps1 -Live -StopAfterSeconds 70`; DB `data/lab/live_traffic_20261127_172303.db`; `src.live.summary` -> `events=149 incidents=7 open_incidents=2 active_isolations=3 denies=0 attacks=4` |
+| E1 injector evidence | Four distinct attacks were allowed and injected over MQTT with identifiable attack IDs. | `%TEMP%\cerberus_live_injector.out.log`: `E1-flood-0000`, `E1-bloat-0001`, `E1-rogue-0002`, `E1-flood-0003`, each `injected=20 verdict=ALLOW` |
+| E1 dashboard + SSE | APIs and one-shot SSE stream served the same live DB. | Endpoint run DB `data/lab/live_traffic_20261127_172440.db`: during run `/api/health` `status=ok events=73 open=0`, `/api/overview` `kpis_events=73 series_buckets=15`, `/api/incidents` `count=3`; `GET /api/stream?once=true` HTTP `200`, `48,373` bytes containing `"kpis"`, `"devices"`, `"incidents"`, `"isolations"`, `"audit"`; run summary at shutdown `events=145 incidents=8 open_incidents=2 active_isolations=3 denies=2 attacks=4` |
+| E1 browser DOM | The UI did not fall back to simulated data during a live run. | Browser run DB `data/lab/live_traffic_20261127_172652.db`: DOM at `http://127.0.0.1:8000` showed `#live-label = "Live · 1s ago"`, `#live-banner.hidden = true`, and no `Simulated data` text; run summary at shutdown `events=151 incidents=8 open_incidents=2 active_isolations=3 denies=2 attacks=4` |
+| E1 agent mode | No provider keys were configured; both agents used deterministic fallback. This is an outage/fallback mode, not an LLM A/B claim. | Live logs and `/api/health` `llm_mode.groq=fallback`, `llm_mode.deepseek=fallback` |
+
+### Observed failures fixed during E1
+
+1. `Start-LiveProc` returned a `Process` object, leaving log paths empty and breaking readiness waits — fixed by returning the entry object with `Proc`, `Out`, and `Err`.
+2. Subscriber logged `ready` on CONNECT before SUBACK, so the first baseline messages could be lost — fixed by moving `ready` to `on_subscribe`.
+3. Injector crashed on `PolicyDecision.verdict` — fixed to derive the verdict from `decision.allowed`.
+4. Multi-process SQLite writes produced `database is locked` — fixed with connection timeout plus `PRAGMA busy_timeout = 30000`.
+5. Direct DB logging in `traffic_gen.py` and retained messages from earlier runs polluted fresh live DBs — fixed by `persist=False` and subscriber-side retained-message skip.
+6. Live DB summary quoted SQL incorrectly inside PowerShell — replaced with `src.live.summary --db <path>`.
+7. A worker test saw fewer baseline windows than expected — fixed by widening the seeded benign window; full suite then passed.
+
+### E1 limits / not claimed
+
+- `-StopAfterSeconds` is only a supervised stop mechanism used for verification; the normal documented run is operator-stopped `.\demo.ps1 -Live`.
+- No GROQ/DEEPSEEK keys were present, so no live-provider or A/B result is claimed.
+- No physical device, RF, CSI, PHY fingerprint, or SDR measurement was performed.
+- E2 concurrent attacks, E3 provider adapter, E4 multi-protocol ingestion, E5 protocol controls, E6 capture, and E7 adaptation remain unimplemented.

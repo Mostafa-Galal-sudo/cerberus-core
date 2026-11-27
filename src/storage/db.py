@@ -110,7 +110,10 @@ def utc_now():
 def open_db(path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, check_same_thread=False)
+    # E1 runs subscriber, injector, worker and dashboard in separate processes.
+    # A 30s busy timeout serializes writers instead of failing under contention.
+    conn = sqlite3.connect(path, timeout=30.0, check_same_thread=False)
+    conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     conn.commit()

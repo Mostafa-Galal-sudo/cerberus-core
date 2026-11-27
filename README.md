@@ -3,9 +3,11 @@
 Graduation project — Faculty of Engineering, Electronics & Communications
 Engineering, Damanhour University. Supervisor: Dr. Mai Shahin.
 
-Multi-layer (RF + protocol) intrusion detection, LLM-driven attack/defense
-agents, policy-bounded automated response, and RF-resilience measurement on an
-ESP32-based IoT testbed.
+Simulation-only multi-layer IoT cyber defense demonstrator: simulated MQTT
+telemetry, rules + ML + device fingerprint detection, LLM-driven attack/defense
+agents with deterministic fallback, policy-bounded automated response, and a
+SOC dashboard with SSE. No physical ESP32, RF, CSI, or SDR measurements are
+claimed.
 
 ## Build status
 
@@ -14,9 +16,10 @@ ESP32-based IoT testbed.
 | C1 — Foundation & data pipeline | 16-22 Nov | simulator + storage + CICIoT2023 EDA | complete |
 | C2 — Detection engine v1 + benchmark | 23-29 Nov | rules vs ML vs hybrid | complete |
 | C3 — Agents + response + dashboard | 30 Nov - 6 Dec | closed loop on simulated traffic | complete (26 Nov) |
-| C4 — Real testbed + lab dataset | 7-13 Dec | ESP32 + AP + gap report | not started |
-| C5 — Closed loop on real testbed | 14-20 Dec | live demo + CIs | not started |
-| C6 — RF resilience (stretch) + final | 21-27 Dec | NRF24L01 or fallback + report | not started |
+| C3-Extended E1 — Continuous simulated SOC | — | MQTT live stack + subscriber-owned DB + SSE dashboard | complete |
+| C4 — Simulated testbed + lab dataset | 7-13 Dec | simulation-only scope; no physical hardware | not started |
+| C5 — Closed loop on simulated testbed | 14-20 Dec | continuous demo + CIs | not started |
+| C6 — Multi-protocol resilience (stretch) + final | 21-27 Dec | report only; no RF/SDR claims | not started |
 
 ## Repository layout
 
@@ -29,6 +32,7 @@ cerberus-core/
 │   ├── detection/  rules + ML + fingerprinting + hybrid
 │   ├── agents/     defense (Groq) + attack (DeepSeek) agents
 │   ├── policy/     single authorization gate (no bypass paths)
+│   ├── live/       E1 continuous MQTT stack (subscriber, publisher, injector, worker)
 │   ├── response/   automated, policy-bounded isolation
 │   ├── incidents/  incident schema + timeline
 │   ├── dashboard/  SOC-style presentation layer
@@ -50,9 +54,26 @@ Every folder has its own `README.md` describing its scope and planned files.
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-# install + start Mosquitto locally, then:
-python -m src.simulator.traffic_gen
+# install + start Mosquitto locally, then choose one launcher:
+.\demo.ps1            # C3: three closed-loop cycles
+.\demo.ps1 -Live      # E1: continuous simulated SOC, stop with Ctrl+C
 ```
+
+`demo.ps1` is the only demo launcher. In `-Live` mode it checks the broker at
+`127.0.0.1:1883`, creates a fresh `data/lab/live_traffic_<timestamp>.db`, then
+starts:
+
+1. `src.live.subscriber` — the only process that writes `mqtt_events`; retained
+   messages are skipped so a fresh DB is not polluted by older runs.
+2. `src.live.publisher` — benign MQTT seed plus continuous simulated traffic.
+3. `src.live.injector` — policy-bounded flood/bloat/rogue attacks over MQTT only.
+4. `src.live.worker` — baseline-fit + live rules, then `DefenseAgent -> PolicyGate`.
+5. FastAPI dashboard + SSE on `http://127.0.0.1:8000`.
+
+`.\demo.ps1 -Live -StopAfterSeconds <n>` is a supervised verification control;
+it is not the normal operator path. Component logs are written to
+`%TEMP%\cerberus_live_*.out.log`, and a one-line DB summary can be reproduced
+with `python -m src.live.summary --db <path-to-live-db>`.
 
 ## Weekly plan and tasks
 

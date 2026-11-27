@@ -1,8 +1,24 @@
-# C3-Extended (proposed)
+# C3-Extended
 
-**Status:** proposed scope only. Nothing here is implemented yet and no dates or durations are attached.
+**Status:** E1 implemented; E2–E7 remain proposed scope only. No dates or durations are attached.
 **Relationship to C3:** extends the already-completed Checkpoint 3 without modifying or replacing its evidence.
 **Mode:** simulation-only. Isolated lab traffic, no physical ESP32, no RF/CSI/SDR measurements, no external network targets.
+
+## Implemented now
+
+### E1 — Continuous simulated SOC — implemented
+
+- `.\demo.ps1 -Live` starts the live stack; plain `.\demo.ps1` still runs the C3 three-cycle demo.
+- Components: `src.live.subscriber` (sole writer of `mqtt_events`), `src.live.publisher`,
+  `src.live.injector`, `src.live.worker`, and `src.live.summary`.
+- Publisher and injector communicate through real local MQTT sockets; subscriber callbacks persist rows
+  with UTC timestamps. Components emit UTC-prefixed logs.
+- The worker fits a benign baseline, applies explicit live rules, and routes incidents through the
+  existing `DefenseAgent -> PolicyGate` path. Missing-baseline devices do not receive deviation alerts.
+- Dashboard APIs and SSE read the same live DB. Evidence numbers, DB paths, and observed failures are
+  recorded in `docs/PROGRESS.md`.
+- `-StopAfterSeconds` is a supervised stop control for verification runs; the documented operator path
+  is `.\demo.ps1 -Live` stopped by the operator.
 
 ## Goal
 
@@ -17,7 +33,7 @@ attacks have real controls to hit, and capture the whole thing on a live local n
 | MQTT | existing, extended | primary IoT bus already implemented | unauthorized publish, wildcard/topic-ACL escape, retained-message poisoning, client-id spoofing, QoS abuse, flood | topic entropy, publish rate, payload size, QoS distribution, unknown device id |
 | HTTP / HTTPS | new (E4) | realistic telemetry + alerting path, easy to simulate in-process | credential stuffing, token replay, path traversal against a lab-only app, malformed JSON, request flood | status-code mix, auth-failure rate, request rate, URI entropy, body size |
 | CoAP / UDP | new (E4) | constrained-device protocol, different transport from MQTT | spoofed endpoint, message replay, resource enumeration, amplification attempt | message type/code, duplicate message-id/token, option entropy, UDP rate |
-| DNS | new (E4) | high-signal lateral/exfiltration behaviour | high-entropy labels, NXDOMAIN flood, fast-flux-like domain churn | label length/entropy, TXT share, NXDOMAIN rate, unique domains per minute |
+| DNS | new (E4) | high-signal lateral/exfiltration behaviour | high-entropy labels, NXDOMAIN flood, fast-flux-like domain churn | label length/entropy, TXT share, NXDOMAIN rate, unique-domain churn |
 
 **Not in this scope (stretch candidates only):** AMQP, Modbus TCP. They can be added later under the
 same `protocol` column; they are not part of the C3-E acceptance.
@@ -30,7 +46,7 @@ detectors; E5 adds controls for the attacks to target.
 
 | ID | Work | Deliverable / evidence to accept | Depends on |
 |----|------|----------------------------------|------------|
-| E1 | Continuous simulated demo: Mosquitto + `traffic_gen.py` as a detached publisher + anomaly injector + detection worker + FastAPI dashboard with SSE | long-running run stopped only by operator; MQTT publish over real sockets; DB updated from subscriber callback; UTC timestamps in logs | existing C3 |
+| E1 | **implemented** — Continuous simulated demo: Mosquitto + `traffic_gen.py` as a detached publisher + anomaly injector + detection worker + FastAPI dashboard with SSE | long-running run stopped only by operator; MQTT publish over real sockets; DB updated from subscriber callback; UTC timestamps in logs; evidence in `docs/PROGRESS.md` | existing C3 |
 | E2 | Concurrent attacks: N injectors with distinct client IDs and targets, correlation ID per attack, fan-out of every detection to the defense agent | N=3/5 run with separated incidents, no DB corruption under the existing write lock, auditable per-attack chain | E1 |
 | E3 | LLM provider adapter replacing the Groq/DeepSeek-specific paths | key only in env/secret store; retry, timeout, circuit breaker, spend cap; `mode=llm/fallback` recorded per incident; A/B between two providers | existing C3 |
 | E4 | HTTP, CoAP, DNS ingestion: `protocol` column, parsers, per-protocol features, rules, and fingerprint baselines | labelled events for each protocol, working detectors, no regression against the existing MQTT benchmark | E1 |

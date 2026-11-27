@@ -2,6 +2,7 @@ import argparse
 import json
 import random
 import secrets
+import threading
 import time
 
 import paho.mqtt.client as mqtt
@@ -11,9 +12,14 @@ from src.simulator.devices import PROFILES
 from src.storage import db
 
 DB_PATH = "data/lab/lab_traffic.db"
-HOST = "localhost"
+HOST = "127.0.0.1"
 PORT = 1883
 LOOP_DT = 0.05
+
+
+def utc_log(message: str) -> None:
+    """Single UTC-prefixed log line format used by every live component."""
+    print(f"[{db.utc_now()}] {message}", flush=True)
 
 
 def init_state(profiles):
@@ -109,6 +115,8 @@ def finish(profile, body, now):
 
 
 def log_publish(conn, profile, topic, raw, qos, retain=False):
+    if conn is None:
+        return  # live mode: the subscriber owns every DB write
     db.save_event(conn, {
         "ts_utc": db.utc_now(),
         "device_id": profile.device_id,
@@ -122,6 +130,8 @@ def log_publish(conn, profile, topic, raw, qos, retain=False):
 
 
 def log_command(conn, topic, raw):
+    if conn is None:
+        return  # live mode: the subscriber owns every DB write
     db.save_event(conn, {
         "ts_utc": db.utc_now(),
         "device_id": "operator",
@@ -137,7 +147,7 @@ def log_command(conn, topic, raw):
 def on_connect(client, userdata, flags, reason_code, properties):
     if getattr(reason_code, "is_failure", False):
         raise ConnectionError(f"MQTT connect failed: {reason_code}")
-    print(f"[mqtt] connected ({reason_code})")
+    utc_log(f"[mqtt] connected ({reason_code})")
     client.subscribe("lab/+/cmd", qos=1)
 
 
@@ -214,8 +224,24 @@ def handle_pending(client, conn, state, now):
         log_publish(conn, profile, profile.topics_publish[0], raw, profile.qos)
 
 
-def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
+def generate(
+    profiles,
+    seconds,
+    db_path=DB_PATH,
+    host=HOST,
+    port=PORT,
+    *,
+    persist: bool = True,
+    client_id: str = "cerberus_sim",
+    stop_event: threading.Event | None = None,
+):
+    """Publish over a real MQTT socket.
+
+    `persist=False` is the E1 live mode: the publisher never writes to SQLite;
+    the independent `src.live.subscriber` callback is the only DB writer.
+    """
     conn = db.open_db(db_path)
+    log_conn = conn if persist else None
     state = init_state(profiles)
     seqs = {p.device_id: 0 for p in profiles}
     next_publish = {
@@ -225,28 +251,31 @@ def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
 
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
-        client_id="cerberus_sim",
-        userdata={"conn": conn, "state": state},
+        client_id=client_id,
+        userdata={"conn": log_conn, "state": state},
     )
     client.on_connect = on_connect
     client.on_message = on_cmd
     client.connect(host, port, keepalive=30)
     client.loop_start()
 
-    print(f"[gen] {len(profiles)} devices, {seconds:.0f}s -> {db_path}")
+    duration_label = "until stopped" if seconds is None else f"{seconds:.0f}s"
+    utc_log(f"[gen] {len(profiles)} devices, {duration_label}, client_id={client_id}, persist={persist}")
     start = time.monotonic()
     try:
-        while time.monotonic() - start < seconds:
+        while (stop_event is None or not stop_event.is_set()) and (
+            seconds is None or time.monotonic() - start < seconds
+        ):
             now = time.monotonic()
-            handle_pending(client, conn, state, now)
+            handle_pending(client, log_conn, state, now)
             for p in profiles:
                 if now < state["offline_until"][p.device_id]:
                     continue
                 if state["offline_until"][p.device_id] and now >= state["offline_until"][p.device_id]:
                     state["offline_until"][p.device_id] = 0.0
-                    come_online(client, conn, p, state, now)
+                    come_online(client, log_conn, p, state, now)
                 if random.random() < p.offline_rate_per_hour / 3600 * LOOP_DT:
-                    go_offline(client, conn, p, state, now)
+                    go_offline(client, log_conn, p, state, now)
                     next_publish[p.device_id] = state["offline_until"][p.device_id] + random.uniform(*p.publish_interval_range)
                     continue
                 state["uptime"][p.device_id] += LOOP_DT
@@ -257,9 +286,9 @@ def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
                 if p.device_type in ("motion", "door"):
                     first = {"motion": 1, "door": "open"}[p.device_type]
                     clear_after = random.uniform(1.5, 4.0) if p.device_type == "motion" else random.uniform(3.0, 30.0)
-                    publish_event(client, conn, p, state, seq, now, first, clear_after)
+                    publish_event(client, log_conn, p, state, seq, now, first, clear_after)
                 else:
-                    publish_periodic(client, conn, p, state, seq, now)
+                    publish_periodic(client, log_conn, p, state, seq, now)
                 next_publish[p.device_id] = now + random.uniform(*p.publish_interval_range)
             time.sleep(LOOP_DT)
     finally:
@@ -268,7 +297,7 @@ def generate(profiles, seconds, db_path=DB_PATH, host=HOST, port=PORT):
         stats = db.summarize(conn)
         conn.close()
 
-    print(f"[gen] done: {stats['total_events']} events")
+    utc_log(f"[gen] done: {stats['total_events']} events in db")
     return stats
 
 
@@ -278,9 +307,13 @@ def main():
     parser.add_argument("--db", default=DB_PATH)
     parser.add_argument("--host", default=HOST)
     parser.add_argument("--port", type=int, default=PORT)
+    parser.add_argument("--client-id", default="cerberus_sim")
     args = parser.parse_args()
 
-    stats = generate(PROFILES, args.duration, db_path=args.db, host=args.host, port=args.port)
+    stats = generate(
+        PROFILES, args.duration, db_path=args.db, host=args.host, port=args.port,
+        client_id=args.client_id,
+    )
     print(json.dumps(stats, indent=2))
 
 

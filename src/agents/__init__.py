@@ -8,6 +8,7 @@ from .provider import (
     ProviderStatus,
     ProviderUnavailable,
     build_health_status,
+    redact_secrets,
     resolve_provider,
 )
 
@@ -22,6 +23,7 @@ __all__ = [
     "ProviderStatus",
     "ProviderUnavailable",
     "build_health_status",
+    "redact_secrets",
     "fallback_attack_plan",
     "fallback_investigate",
     "resolve_provider",

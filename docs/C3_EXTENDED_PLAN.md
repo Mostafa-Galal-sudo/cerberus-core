@@ -122,6 +122,16 @@ Adapter configuration (all optional; keys/models are resolved at call time, neve
 Model IDs shipped as defaults are placeholders pending keyed verification; do not report them as
 verified working models.
 
+## Acceptance stress gate
+
+`src/evaluation/stress_benchmark.py` is the hard gate for everything above. It runs four
+independently gated sections: adapter fault injection (bounded retry, circuit breaker, exact call
+budget, secret redaction, A/B determinism), real local Ollama calls (JSON validity and tool-call
+normalisation), a leakage-free CICIoT2023 sample, and a real `demo.ps1 -Live` E2 run with DB
+forensics (correlation completeness, duplicate chains, integrity, error markers, agent modes).
+A failing gate exits non-zero. Final numbers and the bug this harness exposed are recorded in
+`docs/PROGRESS.md` and `results/STRESS_BENCHMARK.*`; this plan file stays free of dates and durations.
+
 ## Evidence discipline
 
 Every added item needs a before/after baseline with numbers: detection F1/FPR, latency, policy DENY

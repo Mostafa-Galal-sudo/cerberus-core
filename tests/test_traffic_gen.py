@@ -1,4 +1,5 @@
 import json
+import random
 import sqlite3
 
 import pytest
@@ -83,7 +84,9 @@ def test_climate_stays_near_baseline(state):
     assert max(readings) - min(readings) < 6.0
 
 
-def test_climate_dropout_returns_none_sometimes(state):
+def test_climate_dropout_returns_none_sometimes(state, monkeypatch):
+    # Deterministic RNG: the 1% dropout must be observed without a rare zero-run.
+    monkeypatch.setattr(sensors, "random", random.Random(7))
     sensor = sensors.ClimateSensor(23.5, 52.0)
     dropouts = sum(1 for _ in range(500) if sensor.read()[1] is None)
     assert 0 < dropouts < 50

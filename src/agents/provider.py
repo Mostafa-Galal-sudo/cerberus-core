@@ -36,6 +36,18 @@ class ProviderRequestError(ProviderError):
     """The provider request failed after the configured attempts."""
 
 
+def redact_secrets(text: Any, env: dict[str, str] | None = None) -> str:
+    """Strip configured key values from any text that may reach a log or incident."""
+    env = env if env is not None else os.environ
+    out = str(text)
+    for profile in PROFILES.values():
+        for name in profile.key_env:
+            value = str(env.get(name, "") or "").strip()
+            if value:
+                out = out.replace(value, "[REDACTED]")
+    return out
+
+
 def _clean(value: str | None) -> str:
     return (value or "").strip().lower()
 
@@ -431,7 +443,7 @@ class ProviderAdapter:
             self.estimated_usd += (_usage_total(usage) / 1000.0) * self.usd_per_1k
 
     def _on_failure(self, exc: Exception) -> None:
-        self.last_error = f"{type(exc).__name__}: {exc}"[:400]
+        self.last_error = redact_secrets(f"{type(exc).__name__}: {exc}", self._env)[:400]
         self.consecutive_failures += 1
         if self.consecutive_failures >= self.circuit_failures and self.opened_at is None:
             self.opened_at = self._clock()
@@ -562,5 +574,8 @@ class ProviderAdapter:
                 return result
 
         raise ProviderRequestError(
-            f"{self.provider} request failed after {self.max_attempts} attempt(s): {last_exc}"
+            redact_secrets(
+                f"{self.provider} request failed after {self.max_attempts} attempt(s): {last_exc}",
+                self._env,
+            )
         ) from last_exc

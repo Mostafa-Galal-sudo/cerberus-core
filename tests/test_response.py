@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 
 from src.incidents import IncidentStore
@@ -101,4 +103,22 @@ def test_isolation_expiry_steps_down_stale_records(tmp_path):
         rows = reg.list_isolations(device_id="esp32_plug_01")
         assert rows[0]["status"] == "expired"
     finally:
+        conn.close()
+
+
+def test_registry_reads_never_write_while_another_connection_holds_the_db(tmp_path):
+    path = tmp_path / "contended.db"
+    conn = open_db(path)
+    holder = sqlite3.connect(path, timeout=1)
+    try:
+        # Old read paths called expire_stale() (an UPDATE) and stalled/failed here.
+        conn.execute("PRAGMA busy_timeout = 500")
+        holder.execute("PRAGMA busy_timeout = 500")
+        holder.execute("BEGIN IMMEDIATE")
+        reg = IsolationRegistry(conn)
+        assert reg.list_isolations() == []
+        assert reg.is_isolated("esp32_temp_01") is False
+    finally:
+        holder.rollback()
+        holder.close()
         conn.close()

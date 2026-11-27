@@ -52,11 +52,25 @@ class IsolationRegistry:
             self.conn.commit()
             return cur.rowcount
 
+    @staticmethod
+    def _effective(row: sqlite3.Row, now: str) -> dict[str, Any]:
+        """Derive the displayed status without writing during a read."""
+        item = dict(row)
+        if (
+            item.get("status") == "active"
+            and item.get("expires_utc")
+            and str(item["expires_utc"]) <= now
+        ):
+            item["status"] = "expired"
+            item["released_utc"] = item.get("released_utc") or item["expires_utc"]
+        return item
+
     def is_isolated(self, device_id: str, now_utc: str | None = None) -> bool:
-        self.expire_stale(now_utc=now_utc)
+        now = now_utc or utc_now()
         row = self.conn.execute(
-            "SELECT 1 FROM isolations WHERE device_id = ? AND status = 'active' LIMIT 1",
-            (device_id,),
+            "SELECT 1 FROM isolations WHERE device_id = ? AND status = 'active' "
+            "AND (expires_utc IS NULL OR expires_utc > ?) LIMIT 1",
+            (device_id, now),
         ).fetchone()
         return row is not None
 
@@ -124,12 +138,15 @@ class IsolationRegistry:
         active_only: bool = False,
         device_id: str | None = None,
         limit: int = 100,
+        now_utc: str | None = None,
     ) -> list[dict[str, Any]]:
-        self.expire_stale()
+        """Read-only view: expiry is derived from TTL, never written on a read path."""
+        now = now_utc or utc_now()
         clauses: list[str] = []
         params: list[Any] = []
         if active_only:
-            clauses.append("status = 'active'")
+            clauses.append("status = 'active' AND (expires_utc IS NULL OR expires_utc > ?)")
+            params.append(now)
         if device_id is not None:
             clauses.append("device_id = ?")
             params.append(device_id)
@@ -139,4 +156,4 @@ class IsolationRegistry:
             f"SELECT * FROM isolations {where} ORDER BY id DESC LIMIT ?",
             params,
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [self._effective(row, now) for row in rows]

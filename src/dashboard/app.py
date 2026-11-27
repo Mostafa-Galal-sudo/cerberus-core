@@ -12,6 +12,7 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from src.agents import build_health_status
 from src.incidents import IncidentStore
@@ -285,16 +286,21 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         items = gate.audit.query(limit=limit, actor=actor, verdict=verdict)
         return {"count": len(items), "audit": items}
 
+    def build_stream_payload() -> dict[str, Any]:
+        # Sync SQLite work must not run on the ASGI event loop: a busy database
+        # would otherwise stall unrelated requests such as /api/health.
+        return {
+            **_build_snapshot(conn, gate),
+            "incidents": incidents_store.list_incidents(limit=25),
+            "isolations": registry.list_isolations(limit=25),
+            "audit": gate.audit.query(limit=100),
+        }
+
     @app.get("/api/stream")
     async def stream(once: bool = False) -> StreamingResponse:
         async def event_gen():
             while True:
-                payload = {
-                    **_build_snapshot(conn, gate),
-                    "incidents": incidents_store.list_incidents(limit=25),
-                    "isolations": registry.list_isolations(limit=25),
-                    "audit": gate.audit.query(limit=100),
-                }
+                payload = await run_in_threadpool(build_stream_payload)
                 yield f"data: {json.dumps(payload)}\n\n"
                 if once:
                     break

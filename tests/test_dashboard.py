@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -63,11 +63,12 @@ def test_dashboard_endpoints_and_release_flow(tmp_path, monkeypatch):
         series = ov["series"]
         labels = [b["label"] for b in series["events"]]
         assert len(labels) == 15
-        current_or_previous_minute = {
-            seeded_minute.strftime("%H:%M"),
-            (seeded_minute - timedelta(minutes=1)).strftime("%H:%M"),
-        }
-        assert labels[-1] in current_or_previous_minute, labels
+        # Derive "now" at assertion time: minute boundaries must not flake the test.
+        assert labels[-1] == datetime.now(timezone.utc).strftime("%H:%M"), labels
+        seeded_label = seeded_minute.strftime("%H:%M")
+        assert seeded_label in labels, labels
+        seeded_bucket = next(b for b in series["events"] if b["label"] == seeded_label)
+        assert seeded_bucket["count"] == 1
         assert sum(b["count"] for b in series["events"]) == 1
         assert [b["count"] for b in series["denies"]] == [0] * 15
 

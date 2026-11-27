@@ -1,9 +1,11 @@
-"""E1 detection worker: reads subscriber-written rows and drives the defense agent.
+"""E1/E2 detection worker: reads subscriber-written rows and drives the defense agent.
 
 The baseline is fitted once on the seeded benign window snapshot. Subsequent
-alerts come from the existing HybridDetector plus two explicit live rules
-(unknown device id, short burst). Every incident is created through the normal
-DefenseAgent -> PolicyGate path; there is no synthetic detection fallback here.
+alerts come from the existing HybridDetector plus explicit live rules (unknown
+device id, payload bloat, short burst). Every incident is created through the
+normal DefenseAgent -> PolicyGate path; there is no synthetic detection fallback
+here. E2 adds correlation-aware fan-out so each concurrent attack reaches the
+agent as a separated incident chain.
 """
 from __future__ import annotations
 
@@ -44,10 +46,12 @@ class LiveDetectionWorker:
         cooldown: float = 30.0,
         detector: HybridDetector | None = None,
         defense_agent: DefenseAgent | None = None,
+        fanout: bool = False,
     ) -> None:
         self.conn = conn
         self.interval = float(interval)
         self.cooldown = float(cooldown)
+        self.fanout = bool(fanout)
         self.gate = PolicyGate(conn=conn)
         self.incidents = IncidentStore(conn)
         self.detector = detector or HybridDetector(feature_set="mqtt")
@@ -56,6 +60,9 @@ class LiveDetectionWorker:
             conn.execute("SELECT COALESCE(MAX(id), 0) FROM mqtt_events").fetchone()[0]
         )
         self._last_alert: dict[str, float] = {}
+        # E2: one incident chain per correlation ID even if one attack batch is
+        # split across several polls or the same device is attacked again.
+        self._dispatched_correlations: set[str] = set()
         self._fitted = False
         self._baseline_payload_max = 0.0
         self._baseline_devices: set[str] = set()
@@ -174,9 +181,66 @@ class LiveDetectionWorker:
                 })
         return out
 
+    @staticmethod
+    def _correlations_by_device(rows) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+        correlations: dict[str, list[str]] = {}
+        injectors: dict[str, list[str]] = {}
+        for row in rows:
+            dev = str(row["device_id"])
+            corr = str(row["correlation_id"] or "").strip()
+            injector = str(row["injector_id"] or "").strip()
+            if corr and corr not in correlations.setdefault(dev, []):
+                correlations[dev].append(corr)
+            if injector and injector not in injectors.setdefault(dev, []):
+                injectors[dev].append(injector)
+        return correlations, injectors
+
+    def _fanout_groups(self, candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Merge detections by correlation ID so every attack reaches the agent."""
+        groups: dict[str, dict[str, Any]] = {}
+        now = int(time.time())
+        for detection in candidates:
+            dev = str(detection["device_id"])
+            correlations = [str(c) for c in detection.get("correlation_ids") or []]
+            if not correlations:
+                correlations = [f"unattributed:{dev}"]
+            injectors = [str(i) for i in detection.get("injector_ids") or []]
+            for corr in correlations:
+                group = groups.setdefault(corr, {
+                    "device_id": dev,
+                    "severity": str(detection.get("severity", "medium")),
+                    "confidence": float(detection.get("confidence", 0.0)),
+                    "explanation": str(detection.get("explanation", "")),
+                    "detection_ref": f"live-fanout-{corr}-{now}",
+                    "correlation_ids": [corr],
+                    "injector_ids": list(injectors),
+                    "window_meta": dict(detection.get("window_meta") or {}),
+                })
+                if _SEVERITY_RANK.get(str(detection.get("severity")), 2) > _SEVERITY_RANK.get(
+                    group["severity"], 2
+                ):
+                    group["severity"] = str(detection["severity"])
+                group["confidence"] = max(
+                    float(group["confidence"]), float(detection.get("confidence", 0.0))
+                )
+                explanation = str(detection.get("explanation", "")).strip()
+                if explanation and explanation not in group["explanation"]:
+                    group["explanation"] = " | ".join(
+                        part for part in (group["explanation"], explanation) if part
+                    )
+                for injector in injectors:
+                    if injector not in group["injector_ids"]:
+                        group["injector_ids"].append(injector)
+                group["window_meta"].update(dict(detection.get("window_meta") or {}))
+                group["window_meta"]["correlation_ids"] = [corr]
+                if group["injector_ids"]:
+                    group["window_meta"]["injector_ids"] = list(group["injector_ids"])
+        return list(groups.values())
+
     def poll_once(self) -> int:
         rows = self.conn.execute(
-            "SELECT id, ts_utc, device_id, topic, qos, payload_size, direction "
+            "SELECT id, ts_utc, device_id, topic, qos, payload_size, direction, "
+            "correlation_id, injector_id "
             "FROM mqtt_events WHERE id > ? ORDER BY id",
             (self.last_id,),
         ).fetchall()
@@ -193,7 +257,35 @@ class LiveDetectionWorker:
         if not candidates:
             return 0
 
+        correlations, injectors = self._correlations_by_device(rows)
+        for detection in candidates:
+            dev = str(detection["device_id"])
+            detection["correlation_ids"] = correlations.get(dev, [])
+            detection["injector_ids"] = injectors.get(dev, [])
+            detection.setdefault("window_meta", {})["correlation_ids"] = detection["correlation_ids"]
+            if detection["injector_ids"]:
+                detection["window_meta"]["injector_ids"] = detection["injector_ids"]
+
         candidates.sort(key=lambda d: _SEVERITY_RANK.get(str(d["severity"]), 2), reverse=True)
+        if self.fanout:
+            dispatched = 0
+            for detection in self._fanout_groups(candidates):
+                corr_key = ",".join(detection["correlation_ids"])
+                if corr_key in self._dispatched_correlations:
+                    continue
+                result = self.defense.investigate(detection)
+                self._dispatched_correlations.add(corr_key)
+                dispatched += 1
+                utc_log(
+                    f"[worker] fanout incident={result.incident.id} "
+                    f"correlation={corr_key} "
+                    f"injector={','.join(detection['injector_ids']) or 'none'} "
+                    f"device={detection['device_id']} severity={detection['severity']} "
+                    f"status={result.incident.status} "
+                    f"isolated={bool(result.isolation and result.isolation.executed)}"
+                )
+            return dispatched
+
         now = time.monotonic()
         selected: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -247,11 +339,12 @@ def main() -> None:
     parser.add_argument("--db", default=db.DEFAULT_DB_PATH)
     parser.add_argument("--interval", type=float, default=2.0)
     parser.add_argument("--cooldown", type=float, default=30.0)
+    parser.add_argument("--fanout", action="store_true", help="dispatch one incident per attack correlation")
     args = parser.parse_args()
     conn = db.open_db(args.db)
     try:
         LiveDetectionWorker(
-            conn, interval=args.interval, cooldown=args.cooldown
+            conn, interval=args.interval, cooldown=args.cooldown, fanout=args.fanout
         ).run_forever()
     finally:
         conn.close()

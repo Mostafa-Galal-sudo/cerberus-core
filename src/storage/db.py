@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS mqtt_events (
     qos             INTEGER NOT NULL,
     payload_size    INTEGER NOT NULL,
     payload_preview TEXT,
-    direction       TEXT    NOT NULL
+    direction       TEXT    NOT NULL,
+    correlation_id  TEXT,
+    injector_id     TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_ts    ON mqtt_events (ts_utc);
@@ -116,6 +118,14 @@ def open_db(path):
     conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    # E2 adds correlation metadata. Existing lab DBs must remain readable.
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(mqtt_events)")}
+    for column in ("correlation_id", "injector_id"):
+        if column not in columns:
+            conn.execute(f"ALTER TABLE mqtt_events ADD COLUMN {column} TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_events_corr ON mqtt_events (correlation_id)"
+    )
     conn.commit()
     return conn
 
@@ -124,8 +134,9 @@ def save_event(conn, ev):
     with _WRITE_LOCK:
         conn.execute(
             "INSERT INTO mqtt_events "
-            "(ts_utc, device_id, device_type, topic, qos, payload_size, payload_preview, direction) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "(ts_utc, device_id, device_type, topic, qos, payload_size, payload_preview, "
+            "direction, correlation_id, injector_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 ev["ts_utc"],
                 ev["device_id"],
@@ -135,6 +146,8 @@ def save_event(conn, ev):
                 ev["payload_size"],
                 ev["payload_preview"],
                 ev["direction"],
+                ev.get("correlation_id"),
+                ev.get("injector_id"),
             ),
         )
         conn.commit()

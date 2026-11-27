@@ -1,6 +1,6 @@
 # C3-Extended
 
-**Status:** E1 implemented; E2–E7 remain proposed scope only. No dates or durations are attached.
+**Status:** E1 and E2 implemented; E3–E7 remain proposed scope only. No dates or durations are attached.
 **Relationship to C3:** extends the already-completed Checkpoint 3 without modifying or replacing its evidence.
 **Mode:** simulation-only. Isolated lab traffic, no physical ESP32, no RF/CSI/SDR measurements, no external network targets.
 
@@ -19,6 +19,20 @@
   recorded in `docs/PROGRESS.md`.
 - `-StopAfterSeconds` is a supervised stop control for verification runs; the documented operator path
   is `.\demo.ps1 -Live` stopped by the operator.
+
+### E2 — Concurrent attacks with per-attack correlation — implemented
+
+- `.\demo.ps1 -Live -ConcurrentInjectors <1..5>` starts dedicated injectors from
+  `src.live.injector`. N=1 keeps the E1 path; N=3 and N=5 use `E2_SPECS` with distinct injector IDs,
+  MQTT client IDs, lab targets, topics, and isolated `rate_key` buckets while the audit actor stays
+  `attack`.
+- Attack payloads carry `correlation_id` and `injector_id`. `src.live.subscriber` persists them in
+  `mqtt_events`; `PolicyGate` records the same identifiers in `policy_audit.context_json`.
+- `src.live.worker --fanout` groups detections by correlation ID and dispatches one separated
+  incident chain per attack through `DefenseAgent -> PolicyGate`, with deduplication across polls.
+- Aggregated evidence in `docs/PROGRESS.md` covers N=3 and N=5 runs: every audit correlation appears
+  in MQTT events and incident detection evidence exactly once, with no SQLite lock errors and no
+  integrity failures.
 
 ## Goal
 
@@ -47,7 +61,7 @@ detectors; E5 adds controls for the attacks to target.
 | ID | Work | Deliverable / evidence to accept | Depends on |
 |----|------|----------------------------------|------------|
 | E1 | **implemented** — Continuous simulated demo: Mosquitto + `traffic_gen.py` as a detached publisher + anomaly injector + detection worker + FastAPI dashboard with SSE | long-running run stopped only by operator; MQTT publish over real sockets; DB updated from subscriber callback; UTC timestamps in logs; evidence in `docs/PROGRESS.md` | existing C3 |
-| E2 | Concurrent attacks: N injectors with distinct client IDs and targets, correlation ID per attack, fan-out of every detection to the defense agent | N=3/5 run with separated incidents, no DB corruption under the existing write lock, auditable per-attack chain | E1 |
+| E2 | **implemented** — Concurrent attacks: N injectors with distinct client IDs and targets, correlation ID per attack, fan-out of every detection to the defense agent | N=3/5 runs with separated incidents, no DB corruption under the existing write lock, auditable per-attack chain; evidence in `docs/PROGRESS.md` | E1 |
 | E3 | LLM provider adapter replacing the Groq/DeepSeek-specific paths | key only in env/secret store; retry, timeout, circuit breaker, spend cap; `mode=llm/fallback` recorded per incident; A/B between two providers | existing C3 |
 | E4 | HTTP, CoAP, DNS ingestion: `protocol` column, parsers, per-protocol features, rules, and fingerprint baselines | labelled events for each protocol, working detectors, no regression against the existing MQTT benchmark | E1 |
 | E5 | Protocol security controls: MQTT TLS/mTLS + topic ACLs, CoAP DTLS/PSK, lab HTTP auth + rate limits | attack scenarios run against those controls in the isolated lab; ALLOW/DENY rows in `policy_audit`; PolicyGate remains the single response path | E4 |

@@ -57,7 +57,10 @@ class PolicyGate:
         if ok:
             ok, reason = self.scope.check_scope(actor, action, target, context)
         if ok:
-            ok, reason = self.ratelimiter.check_and_record(actor, action, now=now)
+            # E2 concurrent injectors share the 'attack' allowlist role but must
+            # not share one rate-limit bucket. Context may supply an isolated key.
+            rate_key = str((context or {}).get("rate_key") or actor)
+            ok, reason = self.ratelimiter.check_and_record(rate_key, action, now=now)
 
         verdict = "ALLOW" if ok else "DENY"
         self.audit.record(

@@ -75,8 +75,12 @@ def event_from_message(msg: Any) -> dict[str, Any]:
         "operator" if is_command
         else str(body.get("device_type") or _type_for_topic(topic))
     )
+    correlation = body.get("correlation_id")
+    injector = body.get("injector_id")
     return {
         "ts_utc": _parse_ts(body.get("ts")),
+        "correlation_id": str(correlation)[:120] if correlation else None,
+        "injector_id": str(injector)[:80] if injector else None,
         "device_id": device_id,
         "device_type": device_type,
         "topic": topic,

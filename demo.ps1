@@ -5,6 +5,7 @@ param(
     [int]$LiveAttackCount = 20,
     [int]$LiveWorkerInterval = 2,
     [int]$LiveCooldown = 30,
+    [int]$ConcurrentInjectors = 1,
     [int]$StopAfterSeconds = 0
 )
 
@@ -12,6 +13,7 @@ param(
 #  Cerberus-Core  --  E2E Demo Script  (C3-T10)
 #  Run: .\demo.ps1            -> 3 closed-loop cycles (C3 default)
 #       .\demo.ps1 -Live      -> E1 continuous simulated SOC
+#       .\demo.ps1 -Live -ConcurrentInjectors 5 -> E2 concurrent attacks
 #  Works in fallback mode (no API keys needed).
 # ============================================================
 
@@ -78,6 +80,10 @@ function Stop-LiveProcs {
 # ---- 0. Sanity checks -------------------------------------------------------
 if ($Live) { Write-Step "Cerberus-Core E1 -- Live Simulated SOC" }
 else       { Write-Step "Cerberus-Core Demo -- C3 Closed-Loop" }
+if ($Live -and ($ConcurrentInjectors -lt 1 -or $ConcurrentInjectors -gt 5)) {
+    Write-Error "ConcurrentInjectors must be between 1 and 5"
+    exit 1
+}
 if (-not (Test-Path $Venv)) {
     Write-Error "Virtual env not found at $Venv. Create it with: python -m venv .venv"
     exit 1
@@ -147,20 +153,53 @@ if ($Live) {
     Write-Ok "Publisher running with real MQTT socket"
 
     Write-Step "Starting detection worker on subscriber-written telemetry"
-    $worker = Start-LiveProc -Name worker -PythonArgs @(
+    $workerArgs = @(
         '-m', 'src.live.worker', '--db', $DB, '--interval', "$LiveWorkerInterval",
         '--cooldown', "$LiveCooldown"
     )
+    if ($ConcurrentInjectors -gt 1) { $workerArgs += '--fanout' }
+    $worker = Start-LiveProc -Name worker -PythonArgs $workerArgs
     if (-not (Wait-LogLine $worker.Out '[worker] ready' 'worker')) { Stop-LiveProcs; exit 1 }
-    Write-Ok "Detection worker ready"
+    if ($ConcurrentInjectors -gt 1) { Write-Ok "Detection worker ready (correlation fan-out enabled)" }
+    else { Write-Ok "Detection worker ready" }
 
-    Write-Step "Starting policy-bounded anomaly injector (every $LiveAttackInterval s)"
-    $inj = Start-LiveProc -Name injector -PythonArgs @(
-        '-m', 'src.live.injector', '--db', $DB, '--host', $BrokerHost,
-        '--port', "$BrokerPort", '--interval', "$LiveAttackInterval", '--count', "$LiveAttackCount"
-    )
-    if (-not (Wait-LogLine $inj.Out '[injector] ready' 'injector')) { Stop-LiveProcs; exit 1 }
-    Write-Ok "Anomaly injector running: flood -> bloat -> rogue"
+    $attackInterval = $LiveAttackInterval
+    if ($ConcurrentInjectors -gt 1 -and $attackInterval -lt 30) {
+        # Keep concurrent incident creation below the existing defense rate limit.
+        $attackInterval = 30
+    }
+    Write-Step "Starting policy-bounded anomaly injector(s) (every $attackInterval s)"
+    if ($ConcurrentInjectors -eq 1) {
+        $inj = Start-LiveProc -Name injector -PythonArgs @(
+            '-m', 'src.live.injector', '--db', $DB, '--host', $BrokerHost,
+            '--port', "$BrokerPort", '--interval', "$attackInterval", '--count', "$LiveAttackCount"
+        )
+        if (-not (Wait-LogLine $inj.Out '[injector] ready' 'injector')) { Stop-LiveProcs; exit 1 }
+        Write-Ok "Anomaly injector running: flood -> bloat -> rogue"
+    } else {
+        $e2Specs = @(
+            @{ Id = 'e2-inj-1'; Scenario = 'flood'; Target = 'esp32_temp_01'; Topic = 'lab/room1/climate' },
+            @{ Id = 'e2-inj-2'; Scenario = 'bloat'; Target = 'esp32_plug_01'; Topic = 'lab/room1/power' },
+            @{ Id = 'e2-inj-3'; Scenario = 'rogue'; Target = 'esp32_rogue_99'; Topic = 'lab/room9/unknown' },
+            @{ Id = 'e2-inj-4'; Scenario = 'flood'; Target = 'esp32_temp_02'; Topic = 'lab/room2/climate' },
+            @{ Id = 'e2-inj-5'; Scenario = 'bloat'; Target = 'esp32_door_01'; Topic = 'lab/garage/door' }
+        )
+        $selectedSpecs = $e2Specs | Select-Object -First $ConcurrentInjectors
+        $readyIds = @()
+        foreach ($spec in $selectedSpecs) {
+            $proc = Start-LiveProc -Name "injector_$($spec.Id)" -PythonArgs @(
+                '-m', 'src.live.injector', '--db', $DB, '--host', $BrokerHost,
+                '--port', "$BrokerPort", '--interval', "$attackInterval", '--count', "$LiveAttackCount",
+                '--injector-id', $spec.Id, '--scenario', $spec.Scenario,
+                '--target', $spec.Target, '--topic', $spec.Topic, '--run-tag', 'E2'
+            )
+            if (-not (Wait-LogLine $proc.Out '[injector] ready' "injector $($spec.Id)")) {
+                Stop-LiveProcs; exit 1
+            }
+            $readyIds += $spec.Id
+        }
+        Write-Ok "$($readyIds.Count) concurrent injectors ready: $($readyIds -join ', ')"
+    }
 } else {
 # ---- 2. Write Python seed script to temp file and run it -------------------
 Write-Step "Seeding 60 seconds of normal IoT traffic (5 core devices)"
@@ -297,7 +336,9 @@ try {
         Write-Error "Dashboard failed health check on $healthUrl"
         exit 1
     }
-    $runMode = if ($Live) { "E1 live simulated SOC" } else { "C3 closed-loop demo" }
+    $runMode = if (-not $Live) { "C3 closed-loop demo" }
+    elseif ($ConcurrentInjectors -gt 1) { "E2 concurrent simulated SOC" }
+    else { "E1 live simulated SOC" }
     Write-Ok "Dashboard live ($runMode) -- total_events=$($health.total_events)  open_incidents=$($health.open_incidents)"
     Write-Ok "Release token (X-Cerberus-Token): $Token"
 

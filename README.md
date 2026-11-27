@@ -17,6 +17,7 @@ claimed.
 | C2 — Detection engine v1 + benchmark | 23-29 Nov | rules vs ML vs hybrid | complete |
 | C3 — Agents + response + dashboard | 30 Nov - 6 Dec | closed loop on simulated traffic | complete (26 Nov) |
 | C3-Extended E1 — Continuous simulated SOC | — | MQTT live stack + subscriber-owned DB + SSE dashboard | complete |
+| C3-Extended E2 — Concurrent attacks | — | N=3/5 injectors, per-attack correlation, fan-out | complete |
 | C4 — Simulated testbed + lab dataset | 7-13 Dec | simulation-only scope; no physical hardware | not started |
 | C5 — Closed loop on simulated testbed | 14-20 Dec | continuous demo + CIs | not started |
 | C6 — Multi-protocol resilience (stretch) + final | 21-27 Dec | report only; no RF/SDR claims | not started |
@@ -32,7 +33,7 @@ cerberus-core/
 │   ├── detection/  rules + ML + fingerprinting + hybrid
 │   ├── agents/     defense (Groq) + attack (DeepSeek) agents
 │   ├── policy/     single authorization gate (no bypass paths)
-│   ├── live/       E1 continuous MQTT stack (subscriber, publisher, injector, worker)
+│   ├── live/       E1/E2 continuous MQTT stack (subscriber, publisher, injector, worker)
 │   ├── response/   automated, policy-bounded isolation
 │   ├── incidents/  incident schema + timeline
 │   ├── dashboard/  SOC-style presentation layer
@@ -55,8 +56,10 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 # install + start Mosquitto locally, then choose one launcher:
-.\demo.ps1            # C3: three closed-loop cycles
-.\demo.ps1 -Live      # E1: continuous simulated SOC, stop with Ctrl+C
+.\demo.ps1                              # C3: three closed-loop cycles
+.\demo.ps1 -Live                        # E1: continuous simulated SOC, stop with Ctrl+C
+.\demo.ps1 -Live -ConcurrentInjectors 3 # E2: three concurrent attacks
+.\demo.ps1 -Live -ConcurrentInjectors 5 # E2: five concurrent attacks
 ```
 
 `demo.ps1` is the only demo launcher. In `-Live` mode it checks the broker at
@@ -69,6 +72,12 @@ starts:
 3. `src.live.injector` — policy-bounded flood/bloat/rogue attacks over MQTT only.
 4. `src.live.worker` — baseline-fit + live rules, then `DefenseAgent -> PolicyGate`.
 5. FastAPI dashboard + SSE on `http://127.0.0.1:8000`.
+
+`-ConcurrentInjectors` keeps N=1 on the E1 path. Values 3 and 5 use `E2_SPECS`
+with distinct MQTT client IDs, lab targets, topics, policy rate-limit buckets,
+and a `correlation_id` per attack. The worker runs with `--fanout`, opening one
+incident chain per correlated attack; `mqtt_events`, `policy_audit`, and
+`incident_events` can be joined on that ID.
 
 `.\demo.ps1 -Live -StopAfterSeconds <n>` is a supervised verification control;
 it is not the normal operator path. Component logs are written to

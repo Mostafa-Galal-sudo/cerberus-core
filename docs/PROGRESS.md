@@ -109,4 +109,41 @@ no physical ESP32, RF, CSI, or SDR measurement is implied.
 - `-StopAfterSeconds` is only a supervised stop mechanism used for verification; the normal documented run is operator-stopped `.\demo.ps1 -Live`.
 - No GROQ/DEEPSEEK keys were present, so no live-provider or A/B result is claimed.
 - No physical device, RF, CSI, PHY fingerprint, or SDR measurement was performed.
-- E2 concurrent attacks, E3 provider adapter, E4 multi-protocol ingestion, E5 protocol controls, E6 capture, and E7 adaptation remain unimplemented.
+- E3 provider adapter, E4 multi-protocol ingestion, E5 protocol controls, E6 capture, and E7 adaptation remain unimplemented.
+
+## Checkpoint 3-Extended — E2 Concurrent Attacks — ✅ IMPLEMENTED 27 Nov
+
+Additive to E1: the C1, C2, C3, and E1 evidence above is unchanged. Mode remains simulation-only;
+every attack target is inside the lab allowlist and every event is carried by local MQTT sockets.
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| E2 launcher | `.\demo.ps1 -Live -ConcurrentInjectors <1..5>` keeps N=1 on the E1 path and starts dedicated injectors for N=3/5. The worker receives `--fanout` only for N>1. Invalid counts fail fast. | `demo.ps1`; PowerShell parser reported `demo.ps1 parse OK`; launcher wiring asserted in `tests/test_live_pipeline.py` |
+| E2 identity and scope | Five `E2_SPECS` entries have distinct injector IDs, MQTT client IDs, lab targets, topics, and `injector:<id>` rate keys. The audit actor remains `attack`, so the existing allowlist stays authoritative. | Final injector logs `%TEMP%\cerberus_e2_n3_inj_*.out.log` and `%TEMP%\cerberus_e2_n5_inj_*.out.log`; final N=5 DB `policy_audit` shows five distinct targets and five distinct rate keys |
+| E2 correlation storage | `mqtt_events` gained `correlation_id`/`injector_id` with a legacy-column migration and index; attack payloads, subscriber rows, and `policy_audit.context_json` carry the same IDs. | `src/storage/db.py`, `src/live/injector.py`, `src/live/subscriber.py`, `src/policy/gate.py`; migration, payload, and rate-key tests in `tests/test_live_pipeline.py` |
+| E2 fan-out | The worker groups detections by `correlation_id`, dispatches one incident chain per attack through `DefenseAgent -> PolicyGate`, and deduplicates across polls. | `src/live/worker.py`; final worker logs: N=3 `15` fan-out lines / `15` unique correlation keys / `0` duplicates, N=5 `24` / `24` / `0`; incident detection evidence keys match |
+| E2 tests | Full suite green, including the custom-target regression and fan-out deduplication tests. | `& .\.venv\Scripts\python.exe -m pytest tests -q` -> `82 passed in 270.32s`; focused `tests/test_live_pipeline.py` -> `11 passed in 7.69s` |
+| E2 N=3 supervised run | Three concurrent injectors, 12 attacks, correlated events, incidents, isolations, and policy denies persisted in a fresh DB. | `.\demo.ps1 -Live -ConcurrentInjectors 3 -StopAfterSeconds 110`; DB `data/lab/live_traffic_20261127_175843.db`; `src.live.summary` -> `events=315 incidents=15 open_incidents=5 active_isolations=4 denies=5 attacks=12 event_correlations=12 audit_correlations=12 event_injectors=3 audit_injectors=3` |
+| E2 N=5 supervised run | Five concurrent injectors, 20 attacks, and all five targets reached the subscriber and the audit log. | `.\demo.ps1 -Live -ConcurrentInjectors 5 -StopAfterSeconds 110`; DB `data/lab/live_traffic_20261127_180119.db`; `src.live.summary` -> `events=482 incidents=24 open_incidents=14 active_isolations=5 denies=13 attacks=20 event_correlations=20 audit_correlations=20 event_injectors=5 audit_injectors=5` |
+| E2 per-attack chain | Every audit correlation has matching MQTT rows and incident detection evidence; no correlation was opened twice, and SQLite stayed consistent. | N=3: `12/12/12` audit/event/incident correlations, `0` missing, `0` duplicates, `20` event rows per correlation. N=5: `20/20/24` (the extra incident correlations are unattributed detections), `0` missing, `0` duplicates, `20` event rows per correlation. Both DBs: `PRAGMA integrity_check = ok`. Final evidence logs contain no `database is locked`, `Traceback`, `ERROR=`, or `poll error`. |
+| E2 agent mode | No provider keys were configured, so the fan-out used the deterministic defense fallback. This is an outage/fallback path, not an LLM A/B result. | Live launcher output reported no `GROQ_API_KEY`; same as E1 `/api/health` fallback mode |
+
+### Observed failure fixed during E2
+
+The first N=5 run authorized custom targets for `e2-inj-4` (`esp32_temp_02`) and `e2-inj-5`
+(`esp32_door_01`), but `run_injector` did not pass those targets into the anomaly helpers. The helpers
+correctly rejected the mismatch (`expected attack_flood on 'esp32_temp_01', got ... esp32_temp_02`), so
+only three injectors reached `mqtt_events` while all five appeared in `policy_audit`. The launcher now
+forwards `device_id` and `topic` from the authorized spec, and
+`test_scenario_helper_uses_authorized_custom_target` prevents regression. Both final runs above were
+produced after this fix.
+
+### E2 limits / not claimed
+
+- `isolate_device` DENY rows (N=3: `5`, N=5: `13`) are the existing `5/60s` policy rate limit under
+  simultaneous high-severity attacks. They are recorded policy decisions, not silent drops or bypasses.
+- Some incident groups are `unattributed:<device>` when a detector alert has no attack correlation in
+  the same poll. They are still fanned out, but they are not counted as attack-correlated evidence.
+- `-StopAfterSeconds` remains a supervised verification control, not the documented operator path.
+- No live LLM provider, A/B comparison, physical device, RF, CSI, PHY fingerprint, or SDR measurement
+  was performed.

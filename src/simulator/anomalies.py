@@ -66,10 +66,14 @@ def inject_rate_flood(
     payload_size=200,
     *,
     decision: PolicyDecision,
+    extra=None,
 ):
     require_decision(decision, "attack_flood", device_id)
+    marker = {"temp": 99.9}
+    if extra:
+        marker.update(extra)
     for seq in range(1, count + 1):
-        raw = _build_payload(device_id, "climate", payload_size, seq, {"temp": 99.9})
+        raw = _build_payload(device_id, "climate", payload_size, seq, marker)
         _publish(client, conn, device_id, "climate", topic, raw, qos=0)
         if interval > 0:
             time.sleep(interval)
@@ -86,10 +90,14 @@ def inject_payload_bloat(
     payload_size=1200,
     *,
     decision: PolicyDecision,
+    extra=None,
 ):
     require_decision(decision, "attack_bloat", device_id)
+    marker = {"watts": 120.0, "state": "on"}
+    if extra:
+        marker.update(extra)
     for seq in range(1, count + 1):
-        raw = _build_payload(device_id, "plug", payload_size, seq, {"watts": 120.0, "state": "on"})
+        raw = _build_payload(device_id, "plug", payload_size, seq, marker)
         _publish(client, conn, device_id, "plug", topic, raw, qos=0)
         if interval > 0:
             time.sleep(interval)
@@ -106,10 +114,14 @@ def inject_rogue_device(
     payload_size=400,
     *,
     decision: PolicyDecision,
+    extra=None,
 ):
     require_decision(decision, "attack_rogue", device_id)
+    marker = {"probe": True}
+    if extra:
+        marker.update(extra)
     for seq in range(1, count + 1):
-        raw = _build_payload(device_id, "unknown", payload_size, seq, {"probe": True})
+        raw = _build_payload(device_id, "unknown", payload_size, seq, marker)
         _publish(client, conn, device_id, "unknown", topic, raw, qos=0)
         if interval > 0:
             time.sleep(interval)

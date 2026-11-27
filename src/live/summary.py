@@ -24,7 +24,10 @@ def summarize(db_path: str) -> dict[str, Any]:
         denies = conn.execute(
             "SELECT COUNT(*) FROM policy_audit WHERE verdict = 'DENY'"
         ).fetchone()[0]
+
         attack_ids: set[str] = set()
+        audit_correlations: set[str] = set()
+        audit_injectors: set[str] = set()
         for row in conn.execute(
             "SELECT context_json FROM policy_audit WHERE action LIKE 'attack_%'"
         ).fetchall():
@@ -34,6 +37,20 @@ def summarize(db_path: str) -> dict[str, Any]:
                 continue
             if context.get("attack_id"):
                 attack_ids.add(str(context["attack_id"]))
+            if context.get("correlation_id"):
+                audit_correlations.add(str(context["correlation_id"]))
+            if context.get("injector_id"):
+                audit_injectors.add(str(context["injector_id"]))
+
+        event_correlations = conn.execute(
+            "SELECT COUNT(DISTINCT correlation_id) FROM mqtt_events "
+            "WHERE correlation_id IS NOT NULL"
+        ).fetchone()[0]
+        event_injectors = conn.execute(
+            "SELECT COUNT(DISTINCT injector_id) FROM mqtt_events "
+            "WHERE injector_id IS NOT NULL"
+        ).fetchone()[0]
+
         return {
             "events": total,
             "incidents": incidents,
@@ -41,6 +58,10 @@ def summarize(db_path: str) -> dict[str, Any]:
             "active_isolations": active_isolations,
             "denies": denies,
             "attacks": len(attack_ids),
+            "event_correlations": int(event_correlations),
+            "audit_correlations": len(audit_correlations),
+            "event_injectors": int(event_injectors),
+            "audit_injectors": len(audit_injectors),
         }
     finally:
         conn.close()
@@ -53,7 +74,9 @@ def main() -> None:
     stats = summarize(str(args.db))
     print(
         "events={events} incidents={incidents} open_incidents={open_incidents} "
-        "active_isolations={active_isolations} denies={denies} attacks={attacks}".format(**stats)
+        "active_isolations={active_isolations} denies={denies} attacks={attacks} "
+        "event_correlations={event_correlations} audit_correlations={audit_correlations} "
+        "event_injectors={event_injectors} audit_injectors={audit_injectors}".format(**stats)
     )
 
 

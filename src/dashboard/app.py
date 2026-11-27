@@ -5,6 +5,7 @@ import hmac
 import json
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,53 @@ def require_operator(
     if not x_cerberus_token or not hmac.compare_digest(x_cerberus_token, configured):
         raise HTTPException(status_code=401, detail="UNAUTHORIZED")
     return "operator"
+
+
+_SERIES_MINUTES = 15
+_MAX_RELEASE_REASON = 200
+
+
+def _recent_minute_buckets(
+    conn,
+    table: str,
+    *,
+    minutes: int = _SERIES_MINUTES,
+    verdict: str | None = None,
+) -> list[dict[str, Any]]:
+    """Per-minute counts for the last `minutes` whole minutes (UTC, zero-filled).
+
+    Buckets are real wall-clock minutes, so an idle minute shows as 0 instead of
+    being skipped; the chart can never imply activity that did not happen.
+    """
+    if table not in {"mqtt_events", "policy_audit"}:
+        raise ValueError(f"unsupported series table: {table}")
+    where, params = "", []
+    if verdict is not None:
+        if table != "policy_audit":
+            raise ValueError("verdict filter is only supported for policy_audit")
+        where, params = "WHERE verdict = ? AND ", [verdict]
+    else:
+        where = "WHERE "
+    end = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    start = end - timedelta(minutes=minutes - 1)
+    rows = conn.execute(
+        "SELECT strftime('%Y-%m-%dT%H:%M', ts_utc) AS minute, COUNT(*) AS n "
+        f"FROM {table} {where}ts_utc >= ? GROUP BY minute",
+        (*params, start.strftime("%Y-%m-%dT%H:%M")),
+    ).fetchall()
+    counts = {row["minute"]: row["n"] for row in rows}
+    buckets: list[dict[str, Any]] = []
+    for i in range(minutes):
+        key = (start + timedelta(minutes=i)).strftime("%Y-%m-%dT%H:%M")
+        buckets.append({"minute": key, "label": key[11:16], "count": counts.get(key, 0)})
+    return buckets
+
+
+def _clean_release_reason(raw: str | None) -> str:
+    """Normalize an operator-supplied release reason before it reaches the audit trail."""
+    text = "".join(ch if ch.isprintable() else " " for ch in (raw or ""))
+    text = " ".join(text.split())[:_MAX_RELEASE_REASON].strip()
+    return text or "dashboard manual release"
 
 
 def _build_snapshot(conn, gate: PolicyGate) -> dict[str, Any]:
@@ -111,7 +159,11 @@ def _build_snapshot(conn, gate: PolicyGate) -> dict[str, Any]:
         "devices_total": len(devices),
         "devices_isolated": len(isolated_ids),
     }
-    return {"kpis": kpis, "devices": devices}
+    series = {
+        "events": _recent_minute_buckets(conn, "mqtt_events"),
+        "denies": _recent_minute_buckets(conn, "policy_audit", verdict="DENY"),
+    }
+    return {"kpis": kpis, "devices": devices, "series": series}
 
 
 def create_app(db_path: str | Path | None = None) -> FastAPI:
@@ -197,23 +249,26 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     def release_isolated_device(
         device_id: str,
         incident_id: str | None = None,
+        reason: str | None = None,
         actor: str = Depends(require_operator),
     ) -> dict[str, Any]:
+        release_reason = _clean_release_reason(reason)
         res = release_device(
             conn,
             gate,
             device_id,
             actor=actor,
-            reason="dashboard manual release",
+            reason=release_reason,
             incident_id=incident_id,
             incidents=incidents_store if incident_id else None,
-            context={"source": "dashboard", "authenticated": True},
+            context={"source": "dashboard", "authenticated": True, "reason": release_reason},
         )
         if not res.decision.allowed:
             raise HTTPException(status_code=403, detail=res.decision.reason)
         return {
             "released": res.executed,
             "device_id": device_id,
+            "reason": release_reason,
             "policy_reason": res.decision.reason,
         }
 

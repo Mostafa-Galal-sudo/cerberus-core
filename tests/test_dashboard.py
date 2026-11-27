@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 
 from src.dashboard import create_app
@@ -12,11 +14,12 @@ from src.storage.db import open_db, save_event
 def test_dashboard_endpoints_and_release_flow(tmp_path, monkeypatch):
     db_file = tmp_path / "dash.db"
     conn = open_db(db_file)
+    seeded_minute = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     try:
         save_event(
             conn,
             {
-                "ts_utc": "2026-11-26T10:00:00.000+00:00",
+                "ts_utc": seeded_minute.isoformat(),
                 "device_id": "esp32_temp_01",
                 "device_type": "climate",
                 "topic": "lab/room1/climate",
@@ -56,6 +59,18 @@ def test_dashboard_endpoints_and_release_flow(tmp_path, monkeypatch):
         temp_dev = next(d for d in ov["devices"] if d["device_id"] == "esp32_temp_01")
         assert temp_dev["status"] == "isolated"
 
+        # Sparkline series must come from stored rows, not from the client.
+        series = ov["series"]
+        labels = [b["label"] for b in series["events"]]
+        assert len(labels) == 15
+        current_or_previous_minute = {
+            seeded_minute.strftime("%H:%M"),
+            (seeded_minute - timedelta(minutes=1)).strftime("%H:%M"),
+        }
+        assert labels[-1] in current_or_previous_minute, labels
+        assert sum(b["count"] for b in series["events"]) == 1
+        assert [b["count"] for b in series["denies"]] == [0] * 15
+
         detail = client.get(f"/api/incidents/{inc.id}").json()
         assert len(detail["timeline"]) >= 2
 
@@ -63,12 +78,27 @@ def test_dashboard_endpoints_and_release_flow(tmp_path, monkeypatch):
         assert client.post(url).status_code == 401
         assert client.post(url, headers={"X-Cerberus-Token": "wrong"}).status_code == 401
 
-        rel = client.post(url, headers={"X-Cerberus-Token": "test-release-token"})
+        rel = client.post(
+            url + "&reason=%20operator%20reviewed%20the%20flood%20",
+            headers={"X-Cerberus-Token": "test-release-token"},
+        )
         assert rel.status_code == 200
         assert rel.json()["released"] is True
+        assert rel.json()["reason"] == "operator reviewed the flood"
+
+        # The operator reason must land in the incident timeline, not a generic default.
+        detail = client.get(f"/api/incidents/{inc.id}").json()
+        release_events = [e for e in detail["timeline"] if e["kind"] == "release"]
+        assert release_events, detail["timeline"]
+        assert release_events[-1]["details"]["reason"] == "operator reviewed the flood"
 
         audit = client.get("/api/audit").json()
         assert audit["count"] >= 2
+        release_audit = next(
+            a for a in audit["audit"]
+            if a["action"] == "release_device" and a["actor"] == "operator"
+        )
+        assert release_audit["context"]["reason"] == "operator reviewed the flood"
 
         sse = client.get("/api/stream?once=true")
         assert sse.status_code == 200

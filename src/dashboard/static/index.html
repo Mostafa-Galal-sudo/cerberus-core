@@ -155,6 +155,12 @@
     .kpi-num{font:600 31px/1 var(--mono);letter-spacing:-.03em}
     .kpi-sub{margin-top:8px;font-size:12px;color:var(--muted)}
     .kpi-body svg{flex-shrink:0;max-width:44%;height:auto;opacity:.9}
+    .capture-card{margin:16px 0}
+    .capture-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .capture-cell{min-width:0;padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-md)}
+    .capture-cell small{display:block;font:600 9.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+    .capture-cell strong{display:block;margin-top:5px;font:600 13px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .capture-note{margin-top:10px;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
 
     /* ───────── Floor plan ───────── */
     .plan-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -421,7 +427,7 @@
       <button class="nav-item" data-view="audit" onclick="setView('audit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Policy Audit</button>
     </nav>
     <div class="sidebar-foot">
-      <div class="llm-row"><span class="llm-chip" id="provider-chip">Provider: --</span><span class="llm-chip" id="groq-chip">Groq: --</span><span class="llm-chip" id="ds-chip">DeepSeek: --</span></div>
+      <div class="llm-row"><span class="llm-chip" id="provider-chip">Provider: --</span><span class="llm-chip" id="groq-chip">Groq: --</span><span class="llm-chip" id="ds-chip">DeepSeek: --</span><span class="llm-chip" id="capture-chip">Capture: --</span></div>
       <div class="user-card"><div class="avatar">C3</div><div class="user-meta"><strong>SOC Operator</strong><span>@cerberus-lab</span></div></div>
     </div>
   </aside>
@@ -443,6 +449,7 @@
       incidents: [],
       isolations: [],
       audit: [],
+      capture: { available: false, source: "none" },
       series: { events: [], denies: [] },
       selectedIncident: null,
       incidentDetailState: "",
@@ -583,6 +590,28 @@
       </div>`;
     }
 
+    function captureSection() {
+      const c = state.capture || { available: false, source: "none" };
+      const s = c.summary || {};
+      const m = c.metadata || {};
+      const proto = Object.entries(s.protocols || {}).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(" · ") || "--";
+      const pcap = m.pcap ? String(m.pcap).split(/[\\/]/).pop() : "--";
+      const source = c.same_traffic ? "same pcap" : c.available ? "metadata only" : "no capture";
+      const status = !c.available ? "--" : m.status || "--";
+      const labOnly = s.lab_only === undefined ? "--" : s.lab_only ? "lab-only" : "OUTSIDE LAB";
+      return `
+        <section class="card capture-card">
+          <div class="card-head"><div><div class="panel-index">04 <span>/</span> PACKET CAPTURE</div><div class="card-title">E6 lab capture</div><div class="card-sub">Passive loopback / isolated-LAN capture, read back from the same pcap</div></div><button class="text-link" onclick="loadCapture()">Refresh ↻</button></div>
+          <div class="capture-grid">
+            <div class="capture-cell"><small>Source</small><strong title="${esc(source)}">${esc(source)}</strong></div>
+            <div class="capture-cell"><small>Status</small><strong>${esc(status)}</strong></div>
+            <div class="capture-cell"><small>Packets</small><strong>${s.packets ?? 0}</strong></div>
+            <div class="capture-cell"><small>Scope</small><strong>${esc(labOnly)}</strong></div>
+          </div>
+          <div class="capture-note">pcap: ${esc(pcap)} · protocols: ${esc(proto)}${c.reason ? ` · ${esc(c.reason)}` : ""}</div>
+        </section>`;
+    }
+
     function renderDashboard() {
       const k = state.kpis;
       const totalDevs = Math.max(1, k.devices_total || state.devices.length || 1);
@@ -625,6 +654,7 @@
           <div class="kpi-card"><div class="kpi-head"><span>Fleet health</span><span class="kpi-delta">${k.devices_isolated ?? 0} isolated</span></div><div class="kpi-body"><div><div class="kpi-num">${healthyPct}%</div><div class="kpi-sub">${healthyCount} of ${totalDevs} devices healthy</div></div>${tickedArcGaugeSvg(healthyPct)}</div></div>
           <div class="kpi-card"><div class="kpi-head"><span>Policy blocks</span><span class="kpi-delta">PolicyGate</span></div><div class="kpi-body"><div><div class="kpi-num">${k.policy_denies ?? 0}</div><div class="kpi-sub">${k.active_isolations ?? 0} active isolations · chart: last ${(series.denies || []).length || 15} min</div></div>${biWaveformSvg("#f2b15a", series.denies, "denials")}</div></div>
         </section>
+        ${captureSection()}
         ${floorPlanSection()}
         <section class="lower-grid">
           <div class="card activity-card"><div class="card-head"><div><div class="panel-index">02 <span>/</span> EVENT STREAM</div><div class="card-title">Recent activity</div><div class="card-sub">Chronological signals from policy and detection</div></div><select class="select-dark" style="height:32px;font-size:12px" onchange="feedSort=this.value;render()"><option value="latest" ${feedSort==='latest'?'selected':''}>Latest first</option><option value="critical" ${feedSort==='critical'?'selected':''}>Critical first</option></select></div><div class="feed">${feedItems.length ? feedItems.map((f) => `<div class="feed-item" ${f.id ? `onclick="openIncidentDetail('${esc(f.id)}')"` : `onclick="setView('audit')"`}><div class="feed-ico ${f.crit ? 'crit' : ''}">${f.crit ? '!' : '&bull;'}</div><div class="feed-main"><strong>${esc(f.title)}</strong><span>${esc(f.sub)}</span></div><span class="feed-arrow">↗</span></div>`).join("") : `<div class="empty-feed"><span class="empty-feed-mark">◌</span><strong>No activity yet</strong><span>Events will appear here as telemetry arrives.</span></div>`}</div></div>
@@ -1244,6 +1274,25 @@
       }
     }
 
+    function paintCaptureChip(c) {
+      const chip = document.getElementById("capture-chip");
+      if (!chip) return;
+      chip.textContent = c.available ? `Capture: ${c.summary ? c.summary.packets : 0} pkts` : "Capture: --";
+      chip.classList.toggle("live", Boolean(c.available && c.same_traffic));
+      chip.title = c.available ? `${c.source} · ${c.metadata_sheet || ""}` : (c.reason || "no capture");
+    }
+
+    async function loadCapture() {
+      try {
+        const c = await fetch("/api/capture").then((r) => { if (!r.ok) throw 0; return r.json(); });
+        state.capture = c;
+        paintCaptureChip(c);
+      } catch (e) {
+        state.capture = { available: false, reason: String((e && e.message) || "capture API failed"), source: "none" };
+        paintCaptureChip(state.capture);
+      }
+    }
+
     async function refreshAll() {
       try {
         const get = (u) => fetch(u).then((r) => { if (!r.ok) throw 0; return r.json(); });
@@ -1252,14 +1301,17 @@
         // so one broken endpoint cannot replace real data with synthetic data.
         const [ov, inc] = await Promise.all([get("/api/overview"), get("/api/incidents")]);
         if (!validOverview({ kpis: ov.kpis, devices: ov.devices, incidents: inc.incidents, series: ov.series })) throw new Error("API returned an unexpected payload shape");
-        const [iso, aud] = await Promise.all([
+        const [iso, aud, cap] = await Promise.all([
           get("/api/isolations").catch(() => null),
           get("/api/audit").catch(() => null),
+          get("/api/capture").catch(() => null),
         ]);
         LIVE.lastOk = Date.now(); DEMO.on = false;
         state.kpis = ov.kpis; state.devices = ov.devices; state.incidents = inc.incidents;
         state.isolations = iso && Array.isArray(iso.isolations) ? iso.isolations : state.isolations;
         state.audit = aud && Array.isArray(aud.audit) ? aud.audit : state.audit;
+        state.capture = cap && typeof cap.available === "boolean" ? cap : state.capture;
+        paintCaptureChip(state.capture);
         state.series = ov.series && Array.isArray(ov.series.events) ? ov.series : state.series;
         LIVE.err = (!iso || !aud) ? "Isolation or audit endpoint failed; showing the last available real values." : "";
         document.getElementById("nav-open-badge").textContent = ov.kpis.open_incidents ?? 0;
@@ -1367,6 +1419,7 @@
     };
 
     loadHealth();
+    loadCapture();
     refreshAll();
     // ───────── Trustworthy live status ─────────
     const LIVE = { conn: "connecting", lastOk: 0, staleMs: 30000, err: "" };

@@ -61,6 +61,7 @@ pip install -r requirements.txt
 .\demo.ps1 -Live                        # E1: continuous simulated SOC, stop with Ctrl+C
 .\demo.ps1 -Live -ConcurrentInjectors 3 # E2: three concurrent attacks
 .\demo.ps1 -Live -ConcurrentInjectors 5 # E2: five concurrent attacks
+.\demo.ps1 -Live -Capture             # E6: lab-only pcap + dashboard read-back
 ```
 
 `demo.ps1` is the only demo launcher. In `-Live` mode it checks the broker at
@@ -84,6 +85,22 @@ incident chain per correlated attack; `mqtt_events`, `policy_audit`, and
 it is not the normal operator path. Component logs are written to
 `%TEMP%\cerberus_live_*.out.log`, and a one-line DB summary can be reproduced
 with `python -m src.live.summary --db <path-to-live-db>`.
+
+### E6 lab capture (opt-in)
+
+`-Capture` requires `-Live`. It runs bounded `dumpcap` on loopback by default and
+filters only `tcp/udp 1883` plus the dashboard port (`CERBERUS_PORT`). A
+non-loopback interface needs `CERBERUS_CAPTURE_LAN_ISOLATED=1` as an explicit
+user assertion that the interface is an isolated lab segment; no traffic is sent
+outside the lab. Install Wireshark so `dumpcap.exe` and `tshark.exe` are
+discoverable on PATH or under `C:\Program Files\Wireshark` (override with
+`CERBERUS_CAPTURE_BIN_DIR`). Artifacts go to `data/lab/captures/` unless
+`CERBERUS_CAPTURE_DIR` is set: a UTC-named `.pcap`, `.meta.json`, and `.meta.md`
+with the interface, scope assertion, filter, SHA-256, and packet summary.
+
+`GET /api/capture` and the dashboard capture card read statistics from that same
+finalized pcap. Endpoints outside the lab allowlist (`127.0.0.0/8`, `::1/128` by
+default, override with `CERBERUS_CAPTURE_LAB_NETS`) fail the capture gate.
 
 ## LLM provider configuration (E3)
 

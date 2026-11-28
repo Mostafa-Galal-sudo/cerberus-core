@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-11-27T17:51:23+00:00",
+  "generated_utc": "2026-11-28T08:08:04+00:00",
   "sections": {
     "adapter": {
       "metrics": {
@@ -39,9 +39,9 @@
         "tool_success_rate": 1.0,
         "fallbacks": 0,
         "tokens": 1500,
-        "latency_ms_p50": 2396.77,
-        "latency_ms_p95": 8588.37,
-        "latency_ms_max": 29788.24
+        "latency_ms_p50": 3219.58,
+        "latency_ms_p95": 10837.46,
+        "latency_ms_max": 44639.17
       },
       "gates": {
         "all_requests_completed": true,
@@ -58,7 +58,7 @@
         "hybrid_f1": 0.9793,
         "hybrid_fpr": 0.06,
         "rules_f1": 0.9789,
-        "elapsed_s": 266.24
+        "elapsed_s": 323.92
       },
       "gates": {
         "benchmark_completed": true,
@@ -71,12 +71,12 @@
         "injectors": 5,
         "stop_after_seconds": 90,
         "exit_code": 0,
-        "elapsed_s": 140.22,
-        "db_path": "F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\live_traffic_20261127_195736.db",
-        "events": 480,
+        "elapsed_s": 180.47,
+        "db_path": "F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\live_traffic_20261128_101554.db",
+        "events": 493,
         "incidents": 23,
-        "events_per_s": 3.42,
-        "incidents_per_s": 0.164,
+        "events_per_s": 2.73,
+        "incidents_per_s": 0.127,
         "attack_correlations": 20,
         "matched_correlations": 20,
         "correlation_completeness": 1.0,
@@ -86,10 +86,10 @@
           "fallback": 23
         },
         "integrity_check": "ok",
-        "detection_to_incident_ms_p50": 3097.0,
-        "detection_to_incident_ms_p95": 19130.0,
+        "detection_to_incident_ms_p50": 5400.0,
+        "detection_to_incident_ms_p95": 14121.0,
         "error_markers": [],
-        "log_tail": "njectors ready: e2-inj-1, e2-inj-2, e2-inj-3, e2-inj-4, e2-inj-5\n\n==> Starting Cerberus SOC Dashboard on http://127.0.0.1:8000\n    [OK] Dashboard live (E2 concurrent simulated SOC) -- total_events=157  open_incidents=0\n    [OK] Release token (X-Cerberus-Token): [REDACTED]\n\n============================================================\n  Cerberus SOC Dashboard:  http://127.0.0.1:8000\n\n  API endpoints:\n    /api/health      -- system health + KPIs\n    /api/overview    -- device grid + KPIs\n    /api/incidents   -- all incidents\n    /api/isolations  -- isolation registry\n    /api/audit       -- policy audit log\n    /api/stream      -- SSE live feed\n\n  Live DB: F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\live_traffic_20261127_195736.db\n  Component logs: C:\\Users\\mosta\\AppData\\Local\\Temp\\cerberus_live_*.out.log\n  Press Ctrl+C to stop the entire simulated SOC.\n============================================================\n\n    [!!] StopAfterSeconds=90 reached; shutting down live run\n  Live run summary: events=480 incidents=23 open_incidents=13 active_isolations=5 denies=13 attacks=20 event_correlations=20 audit_correlations=20 event_injectors=5 audit_injectors=5\n\nDashboard stopped.\n\n"
+        "log_tail": "ng Cerberus SOC Dashboard on http://127.0.0.1:8000\n    [OK] Dashboard live (E2 concurrent simulated SOC) -- total_events=157  open_incidents=1\n    [OK] Release token (X-Cerberus-Token): [REDACTED]\n\n============================================================\n  Cerberus SOC Dashboard:  http://127.0.0.1:8000\n\n  API endpoints:\n    /api/health      -- system health + KPIs\n    /api/overview    -- device grid + KPIs\n    /api/incidents   -- all incidents\n    /api/isolations  -- isolation registry\n    /api/audit       -- policy audit log\n    /api/capture     -- E6 pcap-backed capture status\n    /api/stream      -- SSE live feed\n\n  Live DB: F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\live_traffic_20261128_101554.db\n  Component logs: C:\\Users\\mosta\\AppData\\Local\\Temp\\cerberus_live_*.out.log\n  Press Ctrl+C to stop the entire simulated SOC.\n============================================================\n\n    [!!] StopAfterSeconds=90 reached; draining injected attacks through the worker\n  Live run summary: events=493 incidents=23 open_incidents=13 active_isolations=5 denies=13 attacks=20 event_correlations=20 audit_correlations=20 event_injectors=5 audit_injectors=5\n\nDashboard stopped.\n\n"
       },
       "gates": {
         "launcher_started": true,
@@ -99,6 +99,43 @@
         "events_and_incidents_present": true,
         "correlations_at_least_95pct": true,
         "no_duplicate_incident_chains": true
+      }
+    },
+    "capture": {
+      "metrics": {
+        "exit_code": 0,
+        "elapsed_s": 156.28,
+        "pcap": "F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.pcap",
+        "metadata_sheet": "F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.meta.json",
+        "markdown_sheet": "F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.meta.md",
+        "artifacts_exist": true,
+        "status": "complete",
+        "filter": "tcp port 1883 or tcp port 8000 or udp port 1883",
+        "sha256": "b0a9694fbe28c40fa88bbd5606c3c6772a0de1bc69b94ba3df07c17403212c77",
+        "sha256_matches_pcap": true,
+        "packets": 1963,
+        "protocols": {
+          "TCP": 1022,
+          "MQTT": 931,
+          "HTTP": 5,
+          "HTTP/JSON": 5
+        },
+        "outside_endpoints": [],
+        "lab_only": true,
+        "dashboard_source": "pcap",
+        "dashboard_same_traffic": true,
+        "dashboard_packets": 1963,
+        "log_tail": "ress Ctrl+C to stop the entire simulated SOC.\n============================================================\n\n    [!!] StopAfterSeconds=90 reached; draining injected attacks through the worker\n\n==> Finalizing E6 lab capture\n  [capture] started F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.pcap\n  [capture] metadata F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.meta.json\n  {\"status\": \"complete\", \"pcap\": \"F:\\\\UserData\\\\Downloads\\\\Cerberus\\\\cerberus-core\\\\data\\\\lab\\\\captures\\\\cerberus_lab_20261128T081854Z.pcap\", \"metadata\": \"F:\\\\UserData\\\\Downloads\\\\Cerberus\\\\cerberus-core\\\\data\\\\lab\\\\captures\\\\cerberus_lab_20261128T081854Z.meta.json\", \"packets\": 1963, \"lab_only\": true}\n    [OK] Capture artifacts: F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.pcap ; F:\\UserData\\Downloads\\Cerberus\\cerberus-core\\data\\lab\\captures\\cerberus_lab_20261128T081854Z.meta.md\n  Live run summary: events=426 incidents=20 open_incidents=10 active_isolations=5 denies=10 attacks=17 event_correlations=17 audit_correlations=17 event_injectors=5 audit_injectors=5\n\nDashboard stopped.\n\n"
+      },
+      "gates": {
+        "launcher_started_capture": true,
+        "exit_code_zero": true,
+        "pcap_and_sheets_exist": true,
+        "metadata_status_complete": true,
+        "sha256_matches_pcap": true,
+        "packets_present": true,
+        "lab_only_endpoints": true,
+        "dashboard_reads_same_pcap": true
       }
     }
   }

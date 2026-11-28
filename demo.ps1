@@ -6,7 +6,9 @@ param(
     [int]$LiveWorkerInterval = 2,
     [int]$LiveCooldown = 30,
     [int]$ConcurrentInjectors = 1,
-    [int]$StopAfterSeconds = 0
+    [int]$StopAfterSeconds = 0,
+    [switch]$Capture,
+    [int]$CaptureSeconds = 0
 )
 
 # ============================================================
@@ -14,6 +16,7 @@ param(
 #  Run: .\demo.ps1            -> 3 closed-loop cycles (C3 default)
 #       .\demo.ps1 -Live      -> E1 continuous simulated SOC
 #       .\demo.ps1 -Live -ConcurrentInjectors 5 -> E2 concurrent attacks
+#       .\demo.ps1 -Live -Capture            -> E6 lab-only pcap + dashboard reads it
 #  Works in fallback mode (no API keys needed).
 # ============================================================
 
@@ -30,6 +33,9 @@ $Token = [Convert]::ToBase64String($TokenBytes)
 $BrokerHost = "127.0.0.1"
 $BrokerPort = 1883
 $liveProcs  = @()
+$captureEntry = $null
+$capturePcap = $null
+$captureStartedAt = $null
 
 if ($Live) {
     $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -84,6 +90,13 @@ if ($Live -and ($ConcurrentInjectors -lt 1 -or $ConcurrentInjectors -gt 5)) {
     Write-Error "ConcurrentInjectors must be between 1 and 5"
     exit 1
 }
+if ($Capture -and -not $Live) {
+    Write-Error "-Capture requires -Live (a capture must cover live lab traffic)"
+    exit 1
+}
+if ($Capture -and $CaptureSeconds -le 0) {
+    $CaptureSeconds = if ($StopAfterSeconds -gt 0) { $StopAfterSeconds + 30 } else { 120 }
+}
 if (-not (Test-Path $Venv)) {
     Write-Error "Virtual env not found at $Venv. Create it with: python -m venv .venv"
     exit 1
@@ -115,6 +128,20 @@ Write-Step "Preparing database"
 $dbDir = Split-Path $DB
 New-Item -ItemType Directory -Force -Path $dbDir | Out-Null
 Write-Ok "DB path: $DB"
+
+if ($Capture) {
+    Write-Step "Starting E6 lab-only packet capture ($CaptureSeconds s, loopback by default)"
+    $captureEntry = Start-LiveProc -Name 'capture' -PythonArgs @(
+        '-m', 'src.capture.capture', '--seconds', "$CaptureSeconds", '--port', "$Port", '--db', $DB
+    )
+    if (-not (Wait-LogLine $captureEntry.Out '[capture] started' 'capture')) {
+        Stop-LiveProcs; exit 1
+    }
+    $captureStartedAt = Get-Date
+    $startedLine = Select-String -Path $captureEntry.Out -Pattern '\[capture\] started ' | Select-Object -Last 1
+    $capturePcap = ($startedLine.Line -replace '^.*\[capture\] started ', '').Trim()
+    Write-Ok "Capture pcap: $capturePcap"
+}
 
 if ($Live) {
     # ---- E1 live pipeline: subscriber -> seed -> publisher -> worker -> injector ----
@@ -159,7 +186,7 @@ if ($Live) {
     )
     if ($ConcurrentInjectors -gt 1) { $workerArgs += '--fanout' }
     $worker = Start-LiveProc -Name worker -PythonArgs $workerArgs
-    if (-not (Wait-LogLine $worker.Out '[worker] ready' 'worker')) { Stop-LiveProcs; exit 1 }
+    if (-not (Wait-LogLine $worker.Out '[worker] ready' 'worker' -Timeout 60)) { Stop-LiveProcs; exit 1 }
     if ($ConcurrentInjectors -gt 1) { Write-Ok "Detection worker ready (correlation fan-out enabled)" }
     else { Write-Ok "Detection worker ready" }
 
@@ -353,11 +380,16 @@ try {
     Write-Host "    /api/incidents   -- all incidents"                       -ForegroundColor Gray
     Write-Host "    /api/isolations  -- isolation registry"                  -ForegroundColor Gray
     Write-Host "    /api/audit       -- policy audit log"                    -ForegroundColor Gray
+    Write-Host "    /api/capture     -- E6 pcap-backed capture status"       -ForegroundColor Gray
     Write-Host "    /api/stream      -- SSE live feed"                       -ForegroundColor Gray
     Write-Host ""
     if ($Live) {
         Write-Host "  Live DB: $DB"                                            -ForegroundColor Gray
         Write-Host "  Component logs: $env:TEMP\cerberus_live_*.out.log"        -ForegroundColor Gray
+        if ($Capture) {
+            Write-Host "  Capture pcap: $capturePcap"                          -ForegroundColor Gray
+            Write-Host "  Capture metadata: $($capturePcap -replace '\.pcap$', '.meta.md')" -ForegroundColor Gray
+        }
         Write-Host "  Press Ctrl+C to stop the entire simulated SOC."         -ForegroundColor White
     } else {
         Write-Host "  Press Ctrl+C to stop the dashboard."                    -ForegroundColor White
@@ -368,10 +400,35 @@ try {
     $startedAt = Get-Date
     while ($true) {
         if ($StopAfterSeconds -gt 0 -and ((Get-Date) - $startedAt).TotalSeconds -ge $StopAfterSeconds) {
-            Write-Warn "StopAfterSeconds=$StopAfterSeconds reached; shutting down live run"
+            Write-Warn "StopAfterSeconds=$StopAfterSeconds reached; draining injected attacks through the worker"
+            # Verification-only drain: stop injectors first, then give the worker one
+            # cooldown window to close the last correlated incident chains.
+            foreach ($entry in @($script:liveProcs | Where-Object { $_.Name -like 'injector_*' })) {
+                if ($entry.Proc -and -not $entry.Proc.HasExited) {
+                    Stop-Process -Id $entry.Proc.Id -Force -ErrorAction SilentlyContinue
+                }
+            }
+            Start-Sleep -Seconds ([Math]::Min(60, $LiveCooldown + ($LiveWorkerInterval * 2)))
             break
         }
         Start-Sleep 2
+    }
+
+    if ($Capture -and $captureEntry) {
+        Write-Step "Finalizing E6 lab capture"
+        $elapsed = (Get-Date) - $captureStartedAt
+        $timeout = [Math]::Max(60, [int][Math]::Ceiling($CaptureSeconds - $elapsed.TotalSeconds + 30))
+        $deadline = (Get-Date).AddSeconds($timeout)
+        while (-not $captureEntry.Proc.HasExited -and (Get-Date) -lt $deadline) { Start-Sleep 2 }
+        if (-not $captureEntry.Proc.HasExited) {
+            Write-Warn "Capture did not exit within ${timeout}s; stopping capture process tree"
+            Get-CimInstance Win32_Process |
+                Where-Object { $_.ParentProcessId -eq $captureEntry.Proc.Id } |
+                ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+            Stop-Process -Id $captureEntry.Proc.Id -Force -ErrorAction SilentlyContinue
+        }
+        Get-Content $captureEntry.Out -Tail 3 | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        Write-Ok "Capture artifacts: $capturePcap ; $($capturePcap -replace '\.pcap$', '.meta.md')"
     }
 } finally {
     if ($dashProc) {
@@ -382,6 +439,11 @@ try {
             Stop-Process -Id $dashProc.Id -Force -ErrorAction SilentlyContinue
         } catch {
         }
+    }
+    if ($captureEntry -and -not $captureEntry.Proc.HasExited) {
+        Get-CimInstance Win32_Process |
+            Where-Object { $_.ParentProcessId -eq $captureEntry.Proc.Id } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     }
     Stop-LiveProcs
     if ($Live) {

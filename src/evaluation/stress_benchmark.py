@@ -7,6 +7,7 @@ human-readable Markdown report under ``results/``:
 - ollama: real local provider latency, JSON validity, tool-call reliability
 - dataset: sampled CICIoT2023 detection benchmark (no leakage, file-level split)
 - live: real ``demo.ps1 -Live -ConcurrentInjectors N`` run and DB forensics
+- capture: real ``demo.ps1 -Live -Capture`` run, pcap forensics, and dashboard read-back
 
 Every section has hard gates. A failing gate makes the process exit non-zero.
 Nothing here changes production state; the live section uses a fresh lab DB.
@@ -15,7 +16,9 @@ Nothing here changes production state; the live section uses a fresh lab DB.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -495,6 +498,98 @@ def live_section(injectors: int, seconds: int) -> dict[str, Any]:
     return {"metrics": metrics, "gates": gates}
 
 
+def capture_section(injectors: int, live_seconds: int, capture_seconds: int) -> dict[str, Any]:
+    """Real loopback capture: verify the pcap, its sheet, and the dashboard read-back."""
+    powershell = shutil.which("powershell") or shutil.which("powershell.exe")
+    if not powershell:
+        return {"skipped": True, "reason": "powershell not available", "gates": {}}
+    from src.capture import capture as capture_module
+    from src.dashboard import create_app
+    from fastapi.testclient import TestClient
+
+    capture_module._METADATA_CACHE.clear()
+    cmd = [
+        powershell, "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", str(ROOT / "demo.ps1"), "-Live", "-Capture",
+        "-ConcurrentInjectors", str(injectors),
+        "-CaptureSeconds", str(capture_seconds), "-StopAfterSeconds", str(live_seconds),
+    ]
+    env = dict(os.environ)
+    capture_dir = ROOT / "data" / "lab" / "captures"
+    env["CERBERUS_CAPTURE_DIR"] = str(capture_dir)
+    started = time.perf_counter()
+    try:
+        proc = subprocess.run(
+            cmd, cwd=str(ROOT), env=env, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=capture_seconds + 300,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return {"skipped": True, "reason": f"capture run timed out: {exc}", "gates": {}}
+    elapsed = time.perf_counter() - started
+    log = sanitise_log((proc.stdout or "") + "\n" + (proc.stderr or ""))
+    match = re.search(r"\[capture\] started (.+)", log)
+    if not match:
+        return {
+            "metrics": {"exit_code": proc.returncode, "log_tail": log[-2000:]},
+            "gates": {"launcher_started_capture": False, "exit_code_zero": False},
+        }
+    pcap = Path(match.group(1).strip())
+    sheet = pcap.with_suffix(".meta.json")
+    md_sheet = pcap.with_suffix(".meta.md")
+    artifacts_exist = pcap.exists() and sheet.exists() and md_sheet.exists()
+    meta: dict[str, Any] = {}
+    sha256_ok = False
+    api: dict[str, Any] = {}
+    if artifacts_exist:
+        try:
+            meta = json.loads(sheet.read_text(encoding="utf-8"))
+            digest = hashlib.sha256()
+            with pcap.open("rb") as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            sha256_ok = bool(meta.get("sha256")) and digest.hexdigest() == meta["sha256"]
+            os.environ["CERBERUS_CAPTURE_DIR"] = str(capture_dir)
+            app = create_app(db_path=meta.get("db_path") or (ROOT / "data" / "lab" / "lab_traffic.db"))
+            with TestClient(app) as client:
+                api = client.get("/api/capture").json()
+        except Exception:
+            pass
+    summary = meta.get("summary") or {}
+    metrics = {
+        "exit_code": proc.returncode,
+        "elapsed_s": round(elapsed, 2),
+        "pcap": str(pcap),
+        "metadata_sheet": str(sheet),
+        "markdown_sheet": str(md_sheet),
+        "artifacts_exist": artifacts_exist,
+        "status": meta.get("status"),
+        "filter": meta.get("filter"),
+        "sha256": meta.get("sha256"),
+        "sha256_matches_pcap": sha256_ok,
+        "packets": summary.get("packets", 0),
+        "protocols": summary.get("protocols", {}),
+        "outside_endpoints": summary.get("outside_endpoints", []),
+        "lab_only": summary.get("lab_only", False),
+        "dashboard_source": api.get("source"),
+        "dashboard_same_traffic": api.get("same_traffic", False),
+        "dashboard_packets": (api.get("summary") or {}).get("packets", 0),
+        "log_tail": log[-1200:],
+    }
+    gates = {
+        "launcher_started_capture": True,
+        "exit_code_zero": proc.returncode == 0,
+        "pcap_and_sheets_exist": artifacts_exist,
+        "metadata_status_complete": meta.get("status") == "complete",
+        "sha256_matches_pcap": sha256_ok,
+        "packets_present": int(summary.get("packets", 0)) > 0,
+        "lab_only_endpoints": bool(summary.get("lab_only")) and not summary.get("outside_endpoints"),
+        "dashboard_reads_same_pcap": bool(api.get("same_traffic"))
+        and api.get("summary", {}).get("packets") == summary.get("packets"),
+    }
+    capture_module._METADATA_CACHE.clear()
+    return {"metrics": metrics, "gates": gates}
+
+
 def render(results: dict[str, Any], args: argparse.Namespace) -> str:
     lines = [
         "# CERBERUS acceptance stress benchmark",
@@ -531,6 +626,7 @@ def render(results: dict[str, Any], args: argparse.Namespace) -> str:
         "- Ollama section calls the real local OpenAI-compatible endpoint when reachable.",
         "- Dataset section samples CICIoT2023 at file level and never trains on attack rows.",
         "- Live section runs `demo.ps1 -Live` against a fresh SQLite DB and inspects it afterwards.",
+        "- Capture section runs `demo.ps1 -Live -Capture` and checks the pcap, sheet, and dashboard read-back.",
         f"- CLI: `{args.command}`",
         "",
         f"**Overall:** {'PASS' if overall else 'FAIL'}",
@@ -546,6 +642,8 @@ def main() -> int:
     parser.add_argument("--dataset-rows", type=int, default=200)
     parser.add_argument("--live-injectors", type=int, default=5)
     parser.add_argument("--live-seconds", type=int, default=90)
+    parser.add_argument("--capture-seconds", type=int, default=0,
+                        help="E6 capture window; defaults to live-seconds + 30")
     parser.add_argument("--out", default="STRESS_BENCHMARK")
     args = parser.parse_args()
     args.command = " ".join(sys.argv)
@@ -556,9 +654,13 @@ def main() -> int:
         "ollama": lambda: ollama_section(args.ollama_requests),
         "dataset": lambda: dataset_section(args.dataset_rows),
         "live": lambda: live_section(args.live_injectors, args.live_seconds),
+        "capture": lambda: capture_section(
+            args.live_injectors, args.live_seconds,
+            args.capture_seconds or (args.live_seconds + 30),
+        ),
     }
     results = {"generated_utc": utcnow(), "sections": {}}
-    for name in ("adapter", "ollama", "dataset", "live"):
+    for name in ("adapter", "ollama", "dataset", "live", "capture"):
         if name in enabled:
             print(f"[stress] running {name} ...", flush=True)
             results["sections"][name] = runners[name]()

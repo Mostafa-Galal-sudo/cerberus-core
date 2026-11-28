@@ -185,28 +185,50 @@ The model is a local 4B vision-language model used here for text-only chat; no c
 vision input, general model quality, or parity with hosted providers. This is still simulation-only:
 all targets remain inside the lab allowlist and `PolicyGate` stays the single response path.
 
+## Checkpoint 3-Extended — E6 Lab Capture — ✅ IMPLEMENTED
+
+Additive to E1, E2, and E3: no earlier DB, incident, provider, or benchmark evidence was replaced.
+Capture is opt-in, so plain `.\demo.ps1` and `.\demo.ps1 -Live` are unchanged.
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| Capture launcher | `.\demo.ps1 -Live -Capture` starts a bounded `dumpcap` window before the live stack and finalizes it after shutdown. Loopback is the default; non-loopback requires `CERBERUS_CAPTURE_LAN_ISOLATED=1`. | `demo.ps1`; `src/capture/capture.py` |
+| Lab-only scope | Filter covers MQTT `tcp/udp 1883` plus the dashboard port only. Captured endpoints are checked against `127.0.0.0/8` and `::1/128` by default; an outside endpoint or zero packets fails the gate. | `lab_capture_filter`, `summarise_pcap`; `tests/test_capture.py` |
+| Artifacts | UTC-named `.pcap` plus `.meta.json` and `.meta.md` with interface, scope assertion, filter, SHA-256, byte count, and packet summary. | `data/lab/captures/cerberus_lab_20261128T081854Z.pcap` and sibling sheets |
+| Real loopback capture | 1,963 packets: TCP 1,022 / MQTT 931 / HTTP 5 / HTTP-JSON 5; 0 outside endpoints, `lab_only=true`, SHA-256 matched the pcap. | `results/STRESS_BENCHMARK.json`, capture section |
+| Dashboard read-back | `GET /api/capture` and the dashboard capture card read the finalized pcap itself (`source=pcap`, `same_traffic=true`, 1,963 packets), not synthetic capture data. | `src/dashboard/app.py`, `src/dashboard/static/index.html`; capture section |
+| Unit + integration tests | 9 capture tests including a real `dumpcap`/`tshark` loopback smoke over locally generated TCP traffic. | `tests/test_capture.py`; `9 passed in 12.92s` focused |
+
 ### Acceptance stress benchmark — verified on this machine
 
-One harness runs four independently gated sections and writes `results/STRESS_BENCHMARK.md/.json`.
+One harness runs five independently gated sections and writes `results/STRESS_BENCHMARK.md/.json`.
 Command used for the accepted run (all gates PASS):
-`& .\.venv\Scripts\python.exe src/evaluation/stress_benchmark.py --sections adapter,ollama,dataset,live --ollama-requests 20 --dataset-rows 200 --live-injectors 5 --live-seconds 90`
+`& .\.venv\Scripts\python.exe src/evaluation/stress_benchmark.py --sections adapter,ollama,dataset,live,capture --ollama-requests 20 --dataset-rows 200 --live-injectors 5 --live-seconds 90 --capture-seconds 150`
 
 | Section | Measured result | Evidence |
 |---------|-----------------|----------|
 | Adapter fault matrix | 7/7 fault scenarios handled, 0 uncaught exceptions, 11/11 bounded attempts, circuit opens/blocks/half-open probe recovers, 3/3 budget calls then fail-closed, 0 key leaks, 2 distinct A/B providers with stable assignment over 1000 keys | `results/STRESS_BENCHMARK.json`; `tests/test_stress_acceptance.py` |
-| Ollama local | 20/20 valid JSON, 4/4 normalized tool calls, 0 fallbacks, 1500 tokens, p50 2.40 s / p95 8.59 s / max 29.79 s | same JSON; real calls to `127.0.0.1:11434/v1` |
-| CICIoT2023 sample | train 400 benign rows, test 61,400 rows (file-level split), hybrid F1 0.9793 / FPR 0.0600, rules F1 0.9789, 266.24 s | same JSON; this is a smaller repeat sample, not a replacement for the full `benchmark_ciciot_v1.md` |
-| Live E2 | 5 injectors, exit 0, 480 events / 23 incidents in 140.22 s, 20/20 attack correlations matched, 0 duplicate incident chains, 13 policy DENY rows, all 23 incidents `mode=fallback`, `PRAGMA integrity_check=ok`, 0 error markers, detection→incident p50 3.10 s / p95 19.13 s | live DB `data/lab/live_traffic_20261127_195736.db`; `demo.ps1 -Live -ConcurrentInjectors 5 -StopAfterSeconds 90` |
+| Ollama local | 20/20 valid JSON, 4/4 normalized tool calls, 0 fallbacks, 1,500 tokens, p50 3.22 s / p95 10.84 s / max 44.64 s | same JSON; real calls to `127.0.0.1:11434/v1` |
+| CICIoT2023 sample | train 400 benign rows, test 61,400 rows (file-level split), hybrid F1 0.9793 / FPR 0.0600, rules F1 0.9789, 323.92 s | same JSON; this is a smaller repeat sample, not a replacement for the full `benchmark_ciciot_v1.md` |
+| Live E2 | 5 injectors, exit 0, 493 events / 23 incidents in 180.47 s, 20/20 attack correlations matched, 0 duplicate incident chains, 13 policy DENY rows, all 23 incidents `mode=fallback`, `PRAGMA integrity_check=ok`, 0 error markers, detection→incident p50 5.40 s / p95 14.12 s | live DB `data/lab/live_traffic_20261128_101554.db`; `demo.ps1 -Live -ConcurrentInjectors 5 -StopAfterSeconds 90` |
+| Capture E6 | exit 0, 1,963 packets, 0 outside endpoints, SHA-256 matched, metadata complete, dashboard read `source=pcap` with 1,963 packets (`same_traffic=true`) | pcap `data/lab/captures/cerberus_lab_20261128T081854Z.pcap`; same JSON |
 
-**Bug found by the stress run and fixed:** the SSE endpoint called
-`IsolationRegistry.list_isolations()`, which performed an `UPDATE` (`expire_stale`) on every read.
-Under concurrent writers it raised `sqlite3.OperationalError: database is locked` inside the async
-generator, blocking `/api/health`. Reads are now read-only (TTL status derived in the query/result),
-and SSE payload assembly runs in a worker thread via `run_in_threadpool`. Regression test:
-`tests/test_response.py::test_registry_reads_never_write_while_another_connection_holds_the_db`.
+**Bugs found by acceptance runs and fixed:**
+
+1. The SSE endpoint called `IsolationRegistry.list_isolations()`, which performed an `UPDATE`
+   (`expire_stale`) on every read. Under concurrent writers it raised
+   `sqlite3.OperationalError: database is locked` inside the async generator, blocking `/api/health`.
+   Reads are now read-only and SSE payload assembly runs via `run_in_threadpool`. Regression test:
+   `tests/test_response.py::test_registry_reads_never_write_while_another_connection_holds_the_db`.
+2. The first E6 run hit the 25 s worker-ready timeout while baseline fitting was still starting.
+   The supervised wait is now 60 s; no normal operator path changed.
+3. An un-drained supervised stop cut off the last correlated chains (18/20 in one run). `-StopAfterSeconds`
+   now stops injectors first and allows one cooldown window for the worker to close the chains before
+   shutdown. The accepted rerun was 20/20 with no DB errors.
+
 Two pre-existing flaky tests were also made deterministic (clock boundary in the dashboard sparkline
-test, seeded RNG in the climate-dropout test). Final full suite after the fixes:
-`112 passed in 429.19s`.
+test, seeded RNG in the climate-dropout test). Final full suite after all fixes:
+`121 passed in 657.28s`.
 
 Still not claimed: hosted-provider keyed calls, two-provider hosted A/B, any physical RF/CSI/SDR
 measurement, and any attack outside the isolated lab. The dashboard release token is redacted from

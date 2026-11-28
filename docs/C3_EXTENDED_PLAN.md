@@ -1,6 +1,6 @@
 # C3-Extended
 
-**Status:** E1 and E2 implemented with live lab evidence; E3 implemented and mock-verified, with live keyed verification and the two-provider A/B comparison still blocked on credentials; E4–E7 remain proposed scope only. No dates or durations are attached.
+**Status:** E1, E2, and E6 implemented with live lab evidence; E3 implemented and mock-verified, with live keyed verification and the two-provider A/B comparison still blocked on credentials; E4, E5, and E7 remain proposed scope only. No dates or durations are attached.
 **Relationship to C3:** extends the already-completed Checkpoint 3 without modifying or replacing its evidence.
 **Mode:** simulation-only. Isolated lab traffic, no physical ESP32, no RF/CSI/SDR measurements, no external network targets.
 
@@ -54,6 +54,22 @@
   budget exhaustion, or provider errors. No live provider response has been observed: all current
   agent evidence is fallback mode, not an LLM result.
 
+### E6 — Lab packet capture and dashboard read-back — implemented
+
+- `.\demo.ps1 -Live -Capture` is opt-in, so default `.\demo.ps1` and `.\demo.ps1 -Live` paths are
+  unchanged. Capture binds to loopback by default; a non-loopback interface is refused unless the
+  operator explicitly sets `CERBERUS_CAPTURE_LAN_ISOLATED=1` for an isolated lab segment.
+- `src/capture/capture.py` runs bounded `dumpcap` with a lab-only filter: MQTT `tcp/udp 1883` plus
+  the dashboard port from `CERBERUS_PORT`/`--port`. No external target is ever addressed.
+- Output is a UTC-named pcap plus `.meta.json` and `.meta.md` sheets recording interface, scope
+  assertion, filter, SHA-256, byte count, summary, and the live DB path.
+- `src/capture/reader.py` reads the finalized pcap with `tshark` and reports packet count, UTC
+  window, protocol mix, and any endpoint outside the lab allowlist. Outside endpoints fail the
+  capture gate; zero packets are refused.
+- `GET /api/capture` and the dashboard capture card read statistics from that same pcap, not from
+  synthetic capture data. The evidence and hard-gated acceptance numbers live in `docs/PROGRESS.md`
+  and `results/STRESS_BENCHMARK.md`.
+
 ## Goal
 
 Turn the three-cycle demo into a continuously running simulated SOC, exercise several attacks at the same
@@ -85,7 +101,7 @@ detectors; E5 adds controls for the attacks to target.
 | E3 | **implemented (mock-verified)** — LLM provider adapter replacing the Groq/DeepSeek-specific paths | key only in env/secret store; retry, timeout, circuit breaker, spend cap; `mode=llm/fallback` recorded per incident; A/B assignment mechanism ready. Live keyed verification and the actual two-provider comparison remain blocked on credentials. | existing C3 |
 | E4 | HTTP, CoAP, DNS ingestion: `protocol` column, parsers, per-protocol features, rules, and fingerprint baselines | labelled events for each protocol, working detectors, no regression against the existing MQTT benchmark | E1 |
 | E5 | Protocol security controls: MQTT TLS/mTLS + topic ACLs, CoAP DTLS/PSK, lab HTTP auth + rate limits | attack scenarios run against those controls in the isolated lab; ALLOW/DENY rows in `policy_audit`; PolicyGate remains the single response path | E4 |
-| E6 | Live local network: `tshark`/`dumpcap` capture on loopback or an isolated LAN interface | pcap with UTC filenames plus metadata sheet; dashboard reading the same traffic being captured; no traffic aimed outside the lab | E1 |
+| E6 | **implemented** — Live local network: `tshark`/`dumpcap` capture on loopback or an isolated LAN interface via `demo.ps1 -Live -Capture` | pcap with UTC filenames plus metadata sheet; dashboard reading the same traffic being captured; no traffic aimed outside the lab; evidence in `docs/PROGRESS.md` | E1 |
 | E7 | Adversarial adaptation: attack agent changes scenario after isolation | adaptation log and proof that the loop reopened on the same incident chain | E2, E3 |
 
 **Order:** E1 → E2 → E3 → E6 → E4 → E5 → E7.

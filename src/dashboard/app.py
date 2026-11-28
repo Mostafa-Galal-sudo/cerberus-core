@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.agents import build_health_status
+from src.capture import CaptureError, latest_capture_status
 from src.incidents import IncidentStore
 from src.policy import AuditLogger, PolicyGate
 from src.response import IsolationRegistry, release_device
@@ -285,6 +286,14 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     ) -> dict[str, Any]:
         items = gate.audit.query(limit=limit, actor=actor, verdict=verdict)
         return {"count": len(items), "audit": items}
+
+    @app.get("/api/capture")
+    def capture_status() -> dict[str, Any]:
+        """E6: statistics read from the same finalized pcap written by demo.ps1 -Capture."""
+        try:
+            return latest_capture_status()
+        except CaptureError as exc:
+            return {"available": False, "reason": str(exc), "source": "none"}
 
     def build_stream_payload() -> dict[str, Any]:
         # Sync SQLite work must not run on the ASGI event loop: a busy database
